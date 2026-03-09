@@ -1,0 +1,382 @@
+/* Ramadan Modern Theme */
+:root {
+  --ramadan-gold: #FFD700;
+  --ramadan-green: #1BA098;
+  --ramadan-dark: #0B1929;
+  --ramadan-bg: #111D2D;
+  --ramadan-card: #1A2F47;
+  --text-light: #E8F0F7;
+  --text-secondary: #A8B5C8;
+}
+
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+  background: linear-gradient(135deg, var(--ramadan-dark) 0%, var(--ramadan-bg) 100%);
+  color: var(--text-light);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Cards and Containers */
+.card {
+  background: linear-gradient(135deg, var(--ramadan-card) 0%, #243447 100%);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: var(--text-light);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 12px 48px rgba(255, 215, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.bg-secondary-dark {
+  background: linear-gradient(135deg, var(--ramadan-card) 0%, #243447 100%) !important;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--ramadan-gold) 0%, #FFC700 100%);
+  border: none;
+  color: var(--ramadan-dark);
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #FFC700 0%, var(--ramadan-gold) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+  color: var(--ramadan-dark);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--ramadan-green) 0%, #16897A 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #16897A 0%, var(--ramadan-green) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(27, 160, 152, 0.3);
+  color: white;
+}
+
+.btn-outline-light {
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  color: var(--ramadan-gold);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-light:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: var(--ramadan-gold);
+  color: var(--ramadan-gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #FF4757 0%, #FF3838 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #FF3838 0%, #FF4757 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 55, 56, 0.3);
+}
+
+/* Text and Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-light);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+p, span, label, small {
+  color: var(--text-light);
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* Badges */
+.badge {
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.badge.bg-primary {
+  background: linear-gradient(135deg, var(--ramadan-gold) 0%, #FFC700 100%) !important;
+  color: var(--ramadan-dark);
+}
+
+.badge.bg-success {
+  background: linear-gradient(135deg, var(--ramadan-green) 0%, #16897A 100%) !important;
+  color: white;
+}
+
+.badge.bg-danger {
+  background: linear-gradient(135deg, #FF4757 0%, #FF3838 100%) !important;
+  color: white;
+}
+
+.badge.bg-secondary {
+  background: rgba(255, 215, 0, 0.15) !important;
+  color: var(--ramadan-gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Forms */
+.form-control, .form-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: var(--text-light);
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+  color: var(--text-secondary);
+}
+
+.form-control:focus, .form-select:focus {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--ramadan-gold);
+  color: var(--text-light);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.form-label {
+  color: var(--text-light);
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Spinner and Loading */
+.spinner-border {
+  border-color: rgba(255, 215, 0, 0.2);
+  border-right-color: var(--ramadan-gold) !important;
+}
+
+/* Canvas */
+canvas {
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--ramadan-dark) 0%, var(--ramadan-bg) 100%);
+}
+
+/* Warn Banner */
+#warn-banner {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, #FF4757 0%, #FF3838 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(255, 55, 56, 0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Tables */
+.table {
+  color: var(--text-light);
+  border-color: rgba(255, 215, 0, 0.1);
+}
+
+.table thead {
+  border-color: rgba(255, 215, 0, 0.2);
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.table tbody tr {
+  border-color: rgba(255, 215, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.table tbody td {
+  color: var(--text-light);
+  vertical-align: middle;
+  padding: 12px;
+}
+
+/* List Groups */
+.list-group-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.1);
+  color: var(--text-light);
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* Alert Boxes */
+.alert {
+  border-radius: 8px;
+  border: 1px solid;
+  padding: 12px 16px;
+  font-weight: 500;
+}
+
+.alert-info {
+  background: rgba(27, 160, 152, 0.15);
+  border-color: rgba(27, 160, 152, 0.3);
+  color: var(--text-light);
+}
+
+.alert-warning {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: var(--ramadan-gold);
+}
+
+.alert-danger {
+  background: rgba(255, 55, 56, 0.15);
+  border-color: rgba(255, 55, 56, 0.3);
+  color: #FF7A7E;
+}
+
+/* MCQ Buttons */
+.mcq-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 215, 0, 0.2);
+  color: var(--text-light);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.mcq-btn:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: var(--ramadan-gold);
+  color: var(--ramadan-gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.mcq-btn.selected {
+  background: var(--ramadan-gold);
+  border-color: var(--ramadan-gold);
+  color: var(--ramadan-dark);
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3);
+}
+
+/* Submit Button */
+#submit-btn {
+  pointer-events: auto;
+  background: linear-gradient(135deg, var(--ramadan-gold) 0%, #FFC700 100%);
+  border: none;
+  color: var(--ramadan-dark);
+  font-weight: 700;
+  padding: 14px 28px;
+  font-size: 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+#submit-btn:hover {
+  background: linear-gradient(135deg, #FFC700 0%, var(--ramadan-gold) 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(255, 215, 0, 0.3);
+  color: var(--ramadan-dark);
+}
+
+#submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Container Styling */
+.container, .container-fluid {
+  padding: 20px;
+}
+
+/* Display Classes */
+.display-1, .display-4 {
+  color: var(--ramadan-gold);
+  font-weight: 700;
+  text-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+/* Letter Spacing */
+.letter-spacing {
+  letter-spacing: 0.25em;
+}
+
+/* Prevent drag */
+img, canvas {
+  pointer-events: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+#mcq-options .mcq-btn {
+  pointer-events: auto;
+}
+
+#submit-btn {
+  pointer-events: auto;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}

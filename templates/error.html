@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5 text-center">
+  <div class="display-1 mb-3">⚠️</div>
+  <h2 class="text-danger mb-2">{{ title | default('Error') }}</h2>
+  <p class="text-secondary mb-4 fs-5">{{ message | default('An error occurred. Please try again.') }}</p>
+  <div class="mb-4">
+    {% if error_code %}
+    <div class="alert alert-light text-muted">Error Code: {{ error_code }}</div>
+    {% endif %}
+  </div>
+  <a href="/" class="btn btn-primary btn-lg">⌂ Go to Home</a>
+</div>
+{% endblock %}

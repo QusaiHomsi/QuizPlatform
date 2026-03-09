@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5 text-center">
+  <h2 class="mb-1">Waiting Lobby</h2>
+  <p class="text-secondary mb-3">Share this code with contestants:</p>
+  <div class="display-1 fw-bold text-primary mb-4 letter-spacing">{{ room.code }}</div>
+  <p class="text-secondary">{{ question_count }} question(s) loaded</p>
+  <div id="contestant-list" class="mb-4">
+    {% for c in contestants %}
+    <span class="badge bg-success fs-6 m-1">{{ c.name }}</span>
+    {% endfor %}
+  </div>
+  <button id="start-btn" class="btn btn-success btn-lg px-5"
+    {% if contestants|length == 0 %}disabled{% endif %}>
+    Start Quiz
+  </button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const socket = io();
+socket.emit('examiner_join', {code: '{{ room.code }}'});
+socket.on('contestant_list_update', function(data){
+  let html = '';
+  data.contestants.forEach(c => {
+    html += `<span class="badge ${c.disqualified?'bg-danger':'bg-success'} fs-6 m-1">${c.name}</span>`;
+  });
+  $('#contestant-list').html(html);
+  let active = data.contestants.filter(c=>!c.disqualified).length;
+  $('#start-btn').prop('disabled', active === 0);
+});
+$('#start-btn').on('click', function(){
+  socket.emit('start_quiz', {code: '{{ room.code }}'});
+  window.location = '/examiner/{{ room.code }}/quiz';
+});
+socket.on('quiz_started', function(){
+  window.location = '/examiner/{{ room.code }}/quiz';
+});
+</script>
+{% endblock %}

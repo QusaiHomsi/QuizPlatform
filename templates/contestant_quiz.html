@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  /* ── Prevent all text selection ── */
+  *, *::before, *::after {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
+  }
+  input, textarea {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    user-select: text !important;
+  }
+
+  /* ── Block print ── */
+  @media print {
+    body { display: none !important; }
+  }
+
+  /* ── Overlay shown when screen is being captured/shared ── */
+  #capture-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  #capture-overlay.active { display: flex; }
+
+  /* ── Canvas wrapper: defeats screenshot crop-and-search ── */
+  #canvas-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+  /* Invisible overlay on top of canvas blocks long-press/right-click image save on mobile */
+  #canvas-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: transparent;
+  }
+
+  .bg-secondary-dark { background-color: #1e1e2e !important; }
+  canvas { display: block; border-radius: 8px; }
+  #warn-banner { position: sticky; top: 0; z-index: 9999; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if disqualified %}
+<div class="container py-5 text-center">
+  <div class="display-1 mb-3">🚫</div>
+  <h2 class="text-danger">You have been disqualified</h2>
+  <p class="text-secondary">{{ reason }}</p>
+</div>
+{% else %}
+
+<!-- Black overlay shown during screen capture detection -->
+<div id="capture-overlay">
+  <div>🚫</div>
+  <div>Screen capture detected</div>
+  <div class="fs-6 text-secondary mt-2">This incident has been recorded</div>
+</div>
+
+<div id="quiz-wrapper" class="container-fluid py-3 px-4">
+  <div id="warn-banner" class="alert alert-warning d-none text-center fw-bold"></div>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">QuizArena</h5>
+    <div>
+      <span id="q-counter" class="badge bg-secondary me-2"></span>
+      <span class="badge bg-success">{{ contestant.name }}</span>
+      <button id="end-btn" class="btn btn-sm btn-danger ms-2">End Exam</button>
+    </div>
+  </div>
+
+  <!-- Canvas wrapper with shield overlay -->
+  <div class="card bg-secondary-dark p-3 mb-3 text-center">
+    <div id="canvas-wrapper" class="mx-auto">
+      <canvas id="q-canvas" style="max-width:100%; display:block;"></canvas>
+      <div id="canvas-shield"></div>
+    </div>
+  </div>
+
+  <div id="answer-area" class="card bg-secondary-dark p-4 d-none">
+    <div id="mcq-options" class="d-none"></div>
+    <div id="text-input-area" class="d-none">
+      <input type="text" id="text-answer" class="form-control form-control-lg mb-3"
+             placeholder="Type your answer..." autocomplete="off" spellcheck="false"
+             autocorrect="off" autocapitalize="off"/>
+    </div>
+    <button id="submit-btn" class="btn btn-success btn-lg w-100">Submit Answer</button>
+  </div>
+
+  <div id="waiting-panel" class="text-center text-secondary mt-3 d-none">
+    <div class="spinner-border spinner-border-sm me-2"></div> Waiting for others...
+  </div>
+
+  <div id="result-panel" class="card bg-secondary-dark p-4 d-none text-center">
+    <div id="result-msg" class="fs-4 fw-bold mb-2"></div>
+    <div id="result-pts" class="text-secondary mb-3"></div>
+    <h6>Top 3 this round:</h6>
+    <div id="top3-list" class="mb-3"></div>
+    <div id="note-area" class="alert alert-info d-none"></div>
+  </div>
+
+  <div id="final-panel" class="card bg-secondary-dark p-4 d-none">
+    <h4 class="text-center mb-3">🏆 Final Results</h4>
+    <div id="final-board"></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not disqualified %}
+<script>
+(function() {
+  'use strict';
+
+  // ── 1. Block all keyboard shortcuts ───────────────────────────────────────
+  const BLOCKED_KEYS = new Set(['F12','PrintScreen','F5','F6']);
+  const BLOCKED_CTRL = new Set(['u','s','p','a','c','x','i','j','k','m','g']);
+  const BLOCKED_CTRL_SHIFT = new Set(['i','c','j','k','m','e']);
+
+  document.addEventListener('keydown', (e) => {
+    if (BLOCKED_KEYS.has(e.key)) { e.preventDefault(); return false; }
+    if ((e.ctrlKey || e.metaKey) && BLOCKED_CTRL.has(e.key.toLowerCase())) {
+      e.preventDefault(); return false;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && BLOCKED_CTRL_SHIFT.has(e.key.toLowerCase())) {
+      e.preventDefault(); return false;
+    }
+    // Block Windows Snipping Tool shortcut: Win+Shift+S (can't fully block but disrupt)
+    if (e.shiftKey && e.metaKey && e.key === 'S') { e.preventDefault(); return false; }
+  }, true);
+
+  // ── 2. Block right-click, copy, cut, paste, drag ─────────────────────────
+  ['contextmenu','selectstart','copy','cut','paste','dragstart','drop'].forEach(evt => {
+    document.addEventListener(evt, e => { e.preventDefault(); return false; }, true);
+  });
+
+  // ── 3. Block mobile long-press (image save / Circle to Search) ───────────
+  // Prevents the hold gesture that triggers Google Circle to Search on Android
+  let touchTimer = null;
+  document.addEventListener('touchstart', (e) => {
+    // Block 3+ finger gestures (screenshot on some devices)
+    if (e.touches.length >= 3) { e.preventDefault(); return false; }
+    touchTimer = setTimeout(() => {
+      // Long press detected — prevent default context (saves image / triggers search)
+    }, 400);
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  });
+
+  document.addEventListener('touchmove', () => {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  });
+
+  // Block long-press on canvas specifically (defeats "Search image" on Chrome Android)
+  document.getElementById('canvas-shield').addEventListener('touchstart', e => {
+    e.preventDefault();
+  }, { passive: false });
+  document.getElementById('canvas-shield').addEventListener('touchend', e => {
+    e.preventDefault();
+  }, { passive: false });
+
+  // ── 4. Screen Capture Detection (CSS media query trick) ──────────────────
+  // When user takes a screenshot or uses screen recorder on some browsers,
+  // the display-mode or a special media query fires — we black out the screen.
+  const captureOverlay = document.getElementById('capture-overlay');
+
+  // Method A: display-capture media query (works on some Chromium versions)
+  try {
+    const captureQuery = window.matchMedia('(display-mode: browser)');
+    // Note: actual capture detection via CSS is limited but we layer multiple methods
+  } catch(e) {}
+
+  // Method B: Page Visibility — any app switch, screenshot tool, overlay = DQ trigger
+  // (This is in contestant_quiz.js via visibilitychange)
+
+  // Method C: Window blur = screenshot tool or Circle to Search overlay opened
+  // (This is in contestant_quiz.js via blur event)
+
+  // Method D: Screen Orientation / resize during capture tools
+  window.addEventListener('resize', () => {
+    // Screenshot tools on some Android phones resize the viewport slightly
+    // We use this as an additional signal in contestant_quiz.js
+  });
+
+  // ── 5. Silence console completely ─────────────────────────────────────────
+  const noop = () => undefined;
+  ['log','warn','error','info','debug','table','trace','dir','group',
+   'groupEnd','time','timeEnd','assert','clear'].forEach(m => {
+    try { console[m] = noop; } catch(e) {}
+  });
+
+  // ── 6. DevTools detection via debugger timing ─────────────────────────────
+  let devToolsOpen = false;
+  setInterval(() => {
+    const t = performance.now();
+    // eslint-disable-next-line no-debugger
+    debugger;
+    if (performance.now() - t > 80) {
+      if (!devToolsOpen) {
+        devToolsOpen = true;
+        // Fire violation via socket (handled in contestant_quiz.js)
+        window._quizViolation && window._quizViolation('DevTools opened');
+      }
+    } else {
+      devToolsOpen = false;
+    }
+  }, 1500);
+
+  // ── 7. Block Print ─────────────────────────────────────────────────────────
+  window.addEventListener('beforeprint', (e) => {
+    e.preventDefault();
+    document.body.innerHTML = '<h1 style="color:red;text-align:center">Printing is not allowed.</h1>';
+  });
+
+  // ── 8. Screen Share / Recording detection via getDisplayMedia override ────
+  // If the page itself tries to call getDisplayMedia (or a tool does), intercept it
+  if (navigator.mediaDevices) {
+    const origGetDisplay = navigator.mediaDevices.getDisplayMedia?.bind(navigator.mediaDevices);
+    if (origGetDisplay) {
+      navigator.mediaDevices.getDisplayMedia = async function(...args) {
+        window._quizViolation && window._quizViolation('Screen share attempted');
+        throw new Error('Not allowed');
+      };
+    }
+  }
+
+  // ── 9. Pointer Lock (keeps mouse inside window, detects escape) ───────────
+  // Requested after fullscreen — prevents mouse leaving to taskbar/dock
+  document.addEventListener('pointerlockchange', () => {
+    // If pointer lock lost during active quiz, that's a signal
+    if (!document.pointerLockElement && window._quizActive) {
+      // Don't DQ for pointer lock alone but log it
+    }
+  });
+
+})();
+</script>
+
+<script src="{{ url_for('static', filename='js/contestant_quiz.js') }}"></script>
+<script>
+const roomCode = '{{ room.code }}';
+const cId = parseInt('{{ contestant.id }}');
+const cName = '{{ contestant.name }}';
+initContestant(roomCode, cId, cName);
+
+// End exam button
+document.getElementById('end-btn').addEventListener('click', function() {
+  if (confirm('Are you sure you want to end the exam?')) {
+    window.location.href = '/end-exam';
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

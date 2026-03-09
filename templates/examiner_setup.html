@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-0">Setup Questions</h2>
+      <small class="text-secondary">Room Code: <span class="badge bg-primary fs-6">{{ room.code }}</span></small>
+    </div>
+    <button id="save-btn" class="btn btn-success btn-lg">Save &amp; Go to Lobby →</button>
+  </div>
+  <div id="questions-container"></div>
+  <button id="add-q-btn" class="btn btn-outline-light mt-3">+ Add Question</button>
+</div>
+
+<template id="q-template">
+  <div class="question-block card bg-secondary-dark p-4 mb-3" data-idx="__IDX__">
+    <div class="d-flex justify-content-between mb-3">
+      <h5 class="mb-0">Question <span class="q-num"></span></h5>
+      <button class="btn btn-sm btn-danger remove-q">✕ Remove</button>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Question Text</label>
+      <textarea class="form-control q-text" rows="2" placeholder="Enter question..."></textarea>
+    </div>
+    <div class="row mb-2">
+      <div class="col-md-3">
+        <label class="form-label">Type</label>
+        <select class="form-select q-type">
+          <option value="text">Open Text</option>
+          <option value="mcq">Multiple Choice</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">1st Place Pts</label>
+        <input type="number" class="form-control q-pts1" value="300" min="0"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">2nd Place Pts</label>
+        <input type="number" class="form-control q-pts2" value="200" min="0"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">3rd Place Pts</label>
+        <input type="number" class="form-control q-pts3" value="100" min="0"/>
+      </div>
+    </div>
+    <div class="mcq-section d-none mb-2">
+      <label class="form-label">Options (one per line)</label>
+      <textarea class="form-control q-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Correct Answer</label>
+      <input type="text" class="form-control q-answer" placeholder="Must match exactly one option for MCQ"/>
+    </div>
+    <div class="mb-0">
+      <label class="form-label">Note / Explanation (optional)</label>
+      <input type="text" class="form-control q-note" placeholder="Shown after answer is revealed"/>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let qCount = 0;
+const container = $('#questions-container');
+
+function addQuestion() {
+  qCount++;
+  let tpl = $('#q-template').html().replace(/__IDX__/g, qCount);
+  let el  = $(tpl);
+  el.find('.q-num').text(qCount);
+  container.append(el);
+  el.find('.remove-q').on('click', function(){
+    $(this).closest('.question-block').remove();
+    renumber();
+  });
+  el.find('.q-type').on('change', function(){
+    let show = $(this).val() === 'mcq';
+    $(this).closest('.question-block').find('.mcq-section').toggleClass('d-none', !show);
+  });
+}
+
+function renumber() {
+  container.find('.question-block').each(function(i){
+    $(this).find('.q-num').text(i + 1);
+  });
+}
+
+$('#add-q-btn').on('click', addQuestion);
+
+$('#save-btn').on('click', function(){
+  let questions = [];
+  let valid = true;
+  container.find('.question-block').each(function(){
+    let text   = $(this).find('.q-text').val().trim();
+    let type   = $(this).find('.q-type').val();
+    let answer = $(this).find('.q-answer').val().trim();
+    let note   = $(this).find('.q-note').val().trim();
+    let pts1   = parseInt($(this).find('.q-pts1').val()) || 300;
+    let pts2   = parseInt($(this).find('.q-pts2').val()) || 200;
+    let pts3   = parseInt($(this).find('.q-pts3').val()) || 100;
+    let options= [];
+    if (type === 'mcq') {
+      options = $(this).find('.q-options').val().split('\n').map(s=>s.trim()).filter(Boolean);
+      if (options.length < 2) { alert('MCQ needs at least 2 options'); valid=false; return false; }
+    }
+    if (!text || !answer) { alert('Each question needs text and a correct answer'); valid=false; return false; }
+    questions.push({text, type, options, answer, note, pts_1st:pts1, pts_2nd:pts2, pts_3rd:pts3});
+  });
+  if (!valid || questions.length === 0) { if(questions.length===0) alert('Add at least one question'); return; }
+  $.ajax({
+    url: '/examiner/{{ room.code }}/setup',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({questions}),
+    success: function(){ window.location = '/examiner/{{ room.code }}/lobby'; }
+  });
+});
+
+addQuestion();
+</script>
+{% endblock %}

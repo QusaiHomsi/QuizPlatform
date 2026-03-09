@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  /* Prevent text selection and copying */
+  .container, .container * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+  <h3 class="mb-2">Welcome, <span class="text-success">{{ contestant.name }}</span>!</h3>
+  <p class="text-secondary mb-4">Room: <span class="badge bg-primary">{{ room.code }}</span></p>
+  <div class="spinner-border text-primary mb-3" role="status"></div>
+  <p class="text-secondary">Waiting for the examiner to start the quiz...</p>
+  <p class="text-warning small mt-4">⚠️ The quiz requires fullscreen. Do not switch tabs or minimize.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<!-- Security & Anti-Cheat Measures -->
+<script>
+// Disable right-click context menu
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Disable text selection
+document.addEventListener('selectstart', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Disable copy, cut, paste
+document.addEventListener('copy', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+document.addEventListener('cut', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+document.addEventListener('paste', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Disable developer tools shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F12' || 
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J' || e.key === 'K' || e.key === 'M')) ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'I') ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'u') ||
+      ((e.ctrlKey || e.metaKey) && e.key === 'p') ||
+      ((e.ctrlKey || e.metaKey) && e.key === 's') ||
+      e.key === 'PrintScreen') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+// Disable drag and drop
+document.addEventListener('dragstart', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  return false;
+});
+</script>
+
+<script>
+const socket = io();
+const code = '{{ room.code }}';
+const cId = parseInt('{{ contestant.id }}');
+socket.emit('contestant_join_room', {
+  code: code,
+  contestant_id: cId
+});
+socket.on('quiz_started', function(){
+  window.location = '/contestant/' + code + '/quiz';
+});
+</script>
+{% endblock %}

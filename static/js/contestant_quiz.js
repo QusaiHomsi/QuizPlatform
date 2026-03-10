@@ -13,7 +13,8 @@ function initContestant(code, cId, cName) {
   window._quizViolation = function(reason) {
     if (warnCount < MAX_WARNS) {
       warnCount++;
-      showWarn(`⚠️ Warning ${warnCount}/${MAX_WARNS}: ${reason}. Next = disqualification.`);
+      const warningMsg = t('warning') + ` ${warnCount}/${MAX_WARNS}: ${t(reason) || reason}. Next = ${t('disqualifiedDesc') || 'disqualification'}.`;
+      showWarn(warningMsg);
     } else {
       socket.emit('disqualify', { code, contestant_id: cId, reason });
     }
@@ -38,18 +39,18 @@ function initContestant(code, cId, cName) {
 
   ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
     .forEach(ev => document.addEventListener(ev, () => {
-      if (!isFS() && window._quizActive) window._quizViolation('Left fullscreen');
+      if (!isFS() && window._quizActive) window._quizViolation('leftFullscreen');
     }));
 
   // ── Visibility / focus (catches screenshot tools, Circle to Search overlay) ──
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && window._quizActive)
-      window._quizViolation('Switched tab or app');
+      window._quizViolation('switchedTab');
   });
 
   window.addEventListener('blur', () => {
     if (window._quizActive)
-      window._quizViolation('Left quiz window (app switch / overlay)');
+      window._quizViolation('switchedTab');
   });
 
   // ── Canvas rendering — heavy anti-OCR + anti-Circle-to-Search ────────────
@@ -196,8 +197,9 @@ function initContestant(code, cId, cName) {
     document.body.innerHTML = `
       <div class="container py-5 text-center">
         <div class="display-1 mb-3">🚫</div>
-        <h2 class="text-danger">You have been disqualified</h2>
+        <h2 class="text-danger">${t('disqualified')}</h2>
         <p class="text-secondary">${data.reason}</p>
+        <small class="text-warning">${t('disqualifiedDesc')}</small>
       </div>`;
     window._quizActive = false;
   });
@@ -211,7 +213,7 @@ function initContestant(code, cId, cName) {
 
     if (!isFS()) requestFS();
 
-    $('#q-counter').text(`Q ${q.index + 1} / ${q.total}`);
+    $('#q-counter').text(`${t('question')} ${q.index + 1} / ${q.total}`);
     $('#answer-area,#waiting-panel,#result-panel,#final-panel').addClass('d-none');
     $('#warn-banner').addClass('d-none');
 
@@ -221,7 +223,7 @@ function initContestant(code, cId, cName) {
       const letters = ['A','B','C','D','E','F'];
       let html = '';
       q.options.forEach((opt, i) => {
-        html += `<button class="btn btn-outline-info w-100 mb-2 mcq-btn" data-val="${opt}">
+        html += `<button class="btn btn-outline-info w-100 mb-2 mcq-btn" data-val="${opt}" title="Select option ${letters[i]}">
           ${letters[i]}. ${opt}
         </button>`;
       });
@@ -251,7 +253,7 @@ function initContestant(code, cId, cName) {
     } else {
       ans = $('#text-answer').val().trim();
     }
-    if (!ans) { showWarn('Please enter or select an answer.'); return; }
+    if (!ans) { showWarn(`❌ ${t('required') || 'Please enter or select an answer.'}`); return; }
     answered = true;
     const elapsed = Date.now() - questionStartTime;
     socket.emit('submit_answer', { code, contestant_id: cId, answer: ans, elapsed_ms: elapsed });
@@ -265,12 +267,12 @@ function initContestant(code, cId, cName) {
     let html = '';
     data.top3.forEach((p, i) => {
       const self = p.name === cName;
-      html += `<div class="badge ${self ? 'bg-success' : 'bg-secondary'} fs-6 m-1">
+      html += `<div class="badge ${self ? 'bg-success' : 'bg-secondary'} fs-6 m-1" title="${self ? 'This is you!' : ''}">
         ${medals[i]} ${p.name} — ${p.points}pts (${(p.elapsed_ms/1000).toFixed(2)}s)
       </div>`;
     });
-    $('#top3-list').html(html || '<p class="text-secondary">No correct answers this round.</p>');
-    $('#note-area').toggleClass('d-none', !currentNote).text(currentNote ? '📌 ' + currentNote : '');
+    $('#top3-list').html(html || `<p class="text-secondary">${t('noContestants') || 'No correct answers this round.'}</p>`);
+    $('#note-area').toggleClass('d-none', !currentNote).html(currentNote ? '📌 <strong>' + currentNote + '</strong>' : '');
     $('#result-panel').removeClass('d-none');
   });
 
@@ -278,7 +280,7 @@ function initContestant(code, cId, cName) {
     window._quizActive = false;
     $('#result-panel,#answer-area,#waiting-panel').addClass('d-none');
     let html = `<table class="table table-dark table-striped">
-      <thead><tr><th>#</th><th>Name</th><th>Points</th></tr></thead><tbody>`;
+      <thead><tr><th>#</th><th>${t('contestants') || 'Name'}</th><th>${t('topThisRound') ? 'Points' : 'Points'}</th></tr></thead><tbody>`;
     data.leaderboard.forEach((p, i) => {
       const self = p.name === cName ? 'table-success' : '';
       html += `<tr class="${self}"><td>${i+1}</td><td>${p.name}</td>

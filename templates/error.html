@@ -2,13 +2,35 @@
 {% block content %}
 <div class="container py-5 text-center">
   <div class="display-1 mb-3">⚠️</div>
-  <h2 class="text-danger mb-2">{{ title | default('Error') }}</h2>
-  <p class="text-secondary mb-4 fs-5">{{ message | default('An error occurred. Please try again.') }}</p>
+  <h2 class="text-danger mb-2" id="errorTitle">{{ title | default('Error') }}</h2>
+  <p class="text-secondary mb-4 fs-5" id="errorMsg">{{ message | default('An error occurred. Please try again.') }}</p>
   <div class="mb-4">
     {% if error_code %}
-    <div class="alert alert-light text-muted">Error Code: {{ error_code }}</div>
+    <div class="alert alert-light text-muted" id="errorCode">
+      <small id="errorCodeLabel">Error Code:</small> <code>{{ error_code }}</code>
+    </div>
     {% endif %}
   </div>
-  <a href="/" class="btn btn-primary btn-lg">⌂ Go to Home</a>
+  <div class="alert alert-info mb-4">
+    <small id="errorHint">
+      💡 <strong>Troubleshooting:</strong><br/>
+      • Check your internet connection<br/>
+      • Make sure the room code is correct<br/>
+      • Try refreshing the page<br/>
+      • Contact your examiner if the issue persists
+    </small>
+  </div>
+  <a href="/" class="btn btn-primary btn-lg" id="homeBtn">⌂ Go to Home</a>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('errorTitle').textContent = '{{ title | default("Error") }}';
+  document.getElementById('errorMsg').textContent = '{{ message | default("An error occurred. Please try again.") }}';
+  if (document.getElementById('errorCodeLabel')) {
+    document.getElementById('errorCodeLabel').textContent = t('error') + ':';
+  }
+  document.getElementById('homeBtn').textContent = '⌂ Back to Home';
+});
+</script>
 {% endblock %}

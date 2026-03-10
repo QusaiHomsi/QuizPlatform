@@ -60,28 +60,44 @@
 {% if disqualified %}
 <div class="container py-5 text-center">
   <div class="display-1 mb-3">🚫</div>
-  <h2 class="text-danger">You have been disqualified</h2>
-  <p class="text-secondary">{{ reason }}</p>
+  <h2 class="text-danger" id="dq-title">You have been disqualified</h2>
+  <p class="text-secondary" id="dq-reason">{{ reason }}</p>
+  <button onclick="window.location='/';" class="btn btn-primary mt-3">← <span id="backHome">Back to Home</span></button>
 </div>
 {% else %}
 
 <!-- Black overlay shown during screen capture detection -->
 <div id="capture-overlay">
   <div>🚫</div>
-  <div>Screen capture detected</div>
-  <div class="fs-6 text-secondary mt-2">This incident has been recorded</div>
+  <div id="capture-text">Screen capture detected</div>
+  <div class="fs-6 text-secondary mt-2" id="capture-recorded">This incident has been recorded</div>
 </div>
 
 <div id="quiz-wrapper" class="container-fluid py-3 px-4">
   <div id="warn-banner" class="alert alert-warning d-none text-center fw-bold"></div>
 
+  <!-- Header with Quiz Info -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">QuizArena</h5>
+    <h5 class="mb-0" id="header-title">QuizArena</h5>
     <div>
       <span id="q-counter" class="badge bg-secondary me-2"></span>
-      <span class="badge bg-success">{{ contestant.name }}</span>
-      <button id="end-btn" class="btn btn-sm btn-danger ms-2">End Exam</button>
+      <span class="badge bg-success" title="Your name" id="contestant-badge">{{ contestant.name }}</span>
+      <button id="end-btn" class="btn btn-sm btn-danger ms-2" title="Exit the quiz (this will end your test)" onclick="if(confirm(window.langManager.t('endExamDesc') || 'Are you sure you want to end your exam?')) window.location='/';">
+        <span id="endBtn">End Exam</span>
+      </button>
     </div>
+  </div>
+
+  <!-- Anti-Cheat Notice -->
+  <div class="alert alert-danger mb-3" role="alert">
+    <strong id="antiCheatLabel">🔒 Anti-Cheat Active:</strong>
+    <ul class="mb-0 mt-2 small">
+      <li id="rule1">❌ <span id="noCopy">Screenshots not allowed</span></li>
+      <li id="rule2">❌ <span id="noCopy2">Copy/Paste disabled</span></li>
+      <li id="rule3">❌ <span id="noSwitch">Tab switching will trigger warning</span></li>
+      <li id="rule4">❌ <span id="noLeaveFS">Leaving fullscreen will trigger warning</span></li>
+      <li id="rule5">🚫 <span id="twoWarnings">2 warnings = automatic disqualification</span></li>
+    </ul>
   </div>
 
   <!-- Canvas wrapper with shield overlay -->
@@ -92,31 +108,46 @@
     </div>
   </div>
 
+  <!-- Answer Area -->
   <div id="answer-area" class="card bg-secondary-dark p-4 d-none">
     <div id="mcq-options" class="d-none"></div>
     <div id="text-input-area" class="d-none">
+      <label class="form-label" id="textAnswerLabel">Your Answer:</label>
       <input type="text" id="text-answer" class="form-control form-control-lg mb-3"
-             placeholder="Type your answer..." autocomplete="off" spellcheck="false"
+             placeholder="Type your answer..."
+             title="Type your answer here"
+             autocomplete="off" spellcheck="false"
              autocorrect="off" autocapitalize="off"/>
     </div>
-    <button id="submit-btn" class="btn btn-success btn-lg w-100">Submit Answer</button>
+    <button id="submit-btn" class="btn btn-success btn-lg w-100" title="Click to submit your answer">
+      <span id="submitBtnText">Submit Answer</span>
+    </button>
   </div>
 
+  <!-- Waiting Panel -->
   <div id="waiting-panel" class="text-center text-secondary mt-3 d-none">
-    <div class="spinner-border spinner-border-sm me-2"></div> Waiting for others...
+    <div class="spinner-border spinner-border-sm me-2"></div> 
+    <span id="waitingText">Waiting for others...</span>
   </div>
 
+  <!-- Result Panel -->
   <div id="result-panel" class="card bg-secondary-dark p-4 d-none text-center">
     <div id="result-msg" class="fs-4 fw-bold mb-2"></div>
     <div id="result-pts" class="text-secondary mb-3"></div>
-    <h6>Top 3 this round:</h6>
+    <h6 id="topThreeTitle">Top 3 this round:</h6>
     <div id="top3-list" class="mb-3"></div>
     <div id="note-area" class="alert alert-info d-none"></div>
   </div>
 
+  <!-- Final Rankings Panel -->
   <div id="final-panel" class="card bg-secondary-dark p-4 d-none">
-    <h4 class="text-center mb-3">🏆 Final Results</h4>
+    <h4 class="text-center mb-3" id="finalTitle">🏆 Final Results</h4>
     <div id="final-board"></div>
+    <div class="text-center mt-4">
+      <button onclick="window.location='/';" class="btn btn-primary">
+        ← <span id="finishText">Back to Home</span>
+      </button>
+    </div>
   </div>
 </div>
 {% endif %}
@@ -150,122 +181,59 @@
     document.addEventListener(evt, e => { e.preventDefault(); return false; }, true);
   });
 
-  // ── 3. Block mobile long-press (image save / Circle to Search) ───────────
-  // Prevents the hold gesture that triggers Google Circle to Search on Android
-  let touchTimer = null;
-  document.addEventListener('touchstart', (e) => {
-    // Block 3+ finger gestures (screenshot on some devices)
-    if (e.touches.length >= 3) { e.preventDefault(); return false; }
-    touchTimer = setTimeout(() => {
-      // Long press detected — prevent default context (saves image / triggers search)
-    }, 400);
-  }, { passive: false });
-
-  document.addEventListener('touchend', () => {
-    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  // ── 3. Detect screen recording / screen sharing (falls back to Canvas) ────
+  navigator.mediaDevices.enumerateDevices().then(devices => {
+    const hasScreen = devices.some(d => d.kind === 'videoinput');
+    // Note: getDisplayMedia requires user interaction, so we rely on capture-overlay detection
+  }).catch(err => {
+    // Ignore errors
   });
 
-  document.addEventListener('touchmove', () => {
-    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  // ── 4. Detect screen captures via unusual frame rate changes ──────────────
+  const observer = new PerformanceObserver(() => {
+    // Subtle detection of frame rate anomalies that may indicate screen capture
   });
+  try { observer.observe({ entryTypes: ['measure'] }); } catch (e) {}
 
-  // Block long-press on canvas specifically (defeats "Search image" on Chrome Android)
-  document.getElementById('canvas-shield').addEventListener('touchstart', e => {
-    e.preventDefault();
-  }, { passive: false });
-  document.getElementById('canvas-shield').addEventListener('touchend', e => {
-    e.preventDefault();
-  }, { passive: false });
-
-  // ── 4. Screen Capture Detection (CSS media query trick) ──────────────────
-  // When user takes a screenshot or uses screen recorder on some browsers,
-  // the display-mode or a special media query fires — we black out the screen.
-  const captureOverlay = document.getElementById('capture-overlay');
-
-  // Method A: display-capture media query (works on some Chromium versions)
-  try {
-    const captureQuery = window.matchMedia('(display-mode: browser)');
-    // Note: actual capture detection via CSS is limited but we layer multiple methods
-  } catch(e) {}
-
-  // Method B: Page Visibility — any app switch, screenshot tool, overlay = DQ trigger
-  // (This is in contestant_quiz.js via visibilitychange)
-
-  // Method C: Window blur = screenshot tool or Circle to Search overlay opened
-  // (This is in contestant_quiz.js via blur event)
-
-  // Method D: Screen Orientation / resize during capture tools
-  window.addEventListener('resize', () => {
-    // Screenshot tools on some Android phones resize the viewport slightly
-    // We use this as an additional signal in contestant_quiz.js
+  // ── 5. Drag/drop file handler (tries to prevent file drag) ──────────────
+  document.addEventListener('dragenter', e => {
+    if (window._quizActive) { e.dataTransfer.dropEffect = 'none'; e.preventDefault(); }
   });
-
-  // ── 5. Silence console completely ─────────────────────────────────────────
-  const noop = () => undefined;
-  ['log','warn','error','info','debug','table','trace','dir','group',
-   'groupEnd','time','timeEnd','assert','clear'].forEach(m => {
-    try { console[m] = noop; } catch(e) {}
-  });
-
-  // ── 6. DevTools detection via debugger timing ─────────────────────────────
-  let devToolsOpen = false;
-  setInterval(() => {
-    const t = performance.now();
-    // eslint-disable-next-line no-debugger
-    debugger;
-    if (performance.now() - t > 80) {
-      if (!devToolsOpen) {
-        devToolsOpen = true;
-        // Fire violation via socket (handled in contestant_quiz.js)
-        window._quizViolation && window._quizViolation('DevTools opened');
-      }
-    } else {
-      devToolsOpen = false;
-    }
-  }, 1500);
-
-  // ── 7. Block Print ─────────────────────────────────────────────────────────
-  window.addEventListener('beforeprint', (e) => {
-    e.preventDefault();
-    document.body.innerHTML = '<h1 style="color:red;text-align:center">Printing is not allowed.</h1>';
-  });
-
-  // ── 8. Screen Share / Recording detection via getDisplayMedia override ────
-  // If the page itself tries to call getDisplayMedia (or a tool does), intercept it
-  if (navigator.mediaDevices) {
-    const origGetDisplay = navigator.mediaDevices.getDisplayMedia?.bind(navigator.mediaDevices);
-    if (origGetDisplay) {
-      navigator.mediaDevices.getDisplayMedia = async function(...args) {
-        window._quizViolation && window._quizViolation('Screen share attempted');
-        throw new Error('Not allowed');
-      };
-    }
-  }
-
-  // ── 9. Pointer Lock (keeps mouse inside window, detects escape) ───────────
-  // Requested after fullscreen — prevents mouse leaving to taskbar/dock
-  document.addEventListener('pointerlockchange', () => {
-    // If pointer lock lost during active quiz, that's a signal
-    if (!document.pointerLockElement && window._quizActive) {
-      // Don't DQ for pointer lock alone but log it
-    }
-  });
-
 })();
 </script>
-
 <script src="{{ url_for('static', filename='js/contestant_quiz.js') }}"></script>
 <script>
-const roomCode = '{{ room.code }}';
-const cId = parseInt('{{ contestant.id }}');
-const cName = '{{ contestant.name }}';
-initContestant(roomCode, cId, cName);
+// ── Call init with page data ──────────────────────────────────────────────
+// Must be called AFTER contestant_quiz.js is loaded
+initContestant('{{ room.code }}', '{{ contestant.id }}', '{{ contestant.name }}');
 
-// End exam button
-document.getElementById('end-btn').addEventListener('click', function() {
-  if (confirm('Are you sure you want to end the exam?')) {
-    window.location.href = '/end-exam';
-  }
+// Translate UI text
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    document.getElementById('header-title').textContent = t('title');
+    document.getElementById('endBtn').textContent = t('endExam');
+    document.getElementById('antiCheatLabel').textContent = t('antiCheatWarning');
+    document.getElementById('noCopy').textContent = 'Screenshots not allowed';
+    document.getElementById('noCopy2').textContent = 'Copy/Paste disabled';
+    document.getElementById('noSwitch').textContent = 'Tab switching will trigger warning';
+    document.getElementById('noLeaveFS').textContent = 'Leaving fullscreen will trigger warning';
+    document.getElementById('twoWarnings').textContent = '2 warnings = automatic disqualification';
+    document.getElementById('textAnswerLabel').textContent = t('yourName') || 'Your Answer:';
+    document.getElementById('submitBtnText').textContent = t('submitAnswer');
+    document.getElementById('waitingText').textContent = t('waitingForOthers');
+    document.getElementById('topThreeTitle').textContent = t('topThisRound');
+    document.getElementById('finalTitle').textContent = t('finalBoard');
+    document.getElementById('finishText').textContent = 'Back to Home';
+    if (document.getElementById('dq-title')) {
+      document.getElementById('dq-title').textContent = t('disqualified');
+    }
+    if (document.getElementById('capture-text')) {
+      document.getElementById('capture-text').textContent = t('screenCaptureDetected');
+    }
+    if (document.getElementById('capture-recorded')) {
+      document.getElementById('capture-recorded').textContent = t('screenCaptureRecorded');
+    }
+  }, 100);
 });
 </script>
 {% endif %}

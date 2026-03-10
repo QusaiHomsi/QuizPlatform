@@ -1,33 +1,77 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container-fluid py-3 px-4">
+  <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Examiner Dashboard — <span class="text-primary">{{ room.code }}</span></h4>
+    <h4 class="mb-0" id="dashboardTitle">Examiner Dashboard — <span class="text-primary">{{ room.code }}</span></h4>
     <span id="q-counter" class="badge bg-secondary fs-6"></span>
   </div>
-  <!-- Current question display -->
+
+  <!-- Anti-Cheat Reminder -->
+  <div class="alert alert-info mb-3">
+    <small>
+      <strong>🔒 <span id="monitoringText">Monitoring:</span></strong>
+      <span id="monitoringDesc">Full-screen mode required • Tab switching detected • Screenshot attempts recorded</span>
+    </small>
+  </div>
+
+  <!-- Current Question Display -->
   <div class="card bg-secondary-dark p-4 mb-3" id="q-panel">
-    <p class="text-secondary">Waiting for quiz to begin...</p>
+    <p class="text-secondary" id="waitingForQuiz">Waiting for quiz to begin...</p>
   </div>
-  <!-- Top 3 result panel -->
+
+  <!-- Top 3 Result Panel -->
   <div class="card bg-secondary-dark p-4 mb-3 d-none" id="result-panel">
-    <h5 class="mb-3">📊 Question Result — Top 3</h5>
+    <h5 class="mb-3" id="resultTitle">📊 Question Result — Top 3</h5>
     <div id="top3-list"></div>
-    <button id="next-btn" class="btn btn-primary mt-3">Next Question →</button>
+    <button id="next-btn" class="btn btn-primary mt-3" title="Move to the next question">
+      <span id="nextBtn">Next Question</span> →
+    </button>
   </div>
-  <!-- Contestants status -->
+
+  <!-- Contestants Status Panel -->
   <div class="card bg-secondary-dark p-3" id="contestants-panel">
-    <h6 class="mb-2">Contestants</h6>
+    <h6 class="mb-2" id="contTitle">
+      👥 <span id="contTitleText">Contestants</span>
+    </h6>
+    <small class="text-secondary mb-2 d-block" id="contDesc">
+      🟢 = Active | 🟡 = Answered | 🚫 = Disqualified
+    </small>
     <div id="c-list"></div>
   </div>
-  <!-- Final leaderboard -->
+
+  <!-- Final Leaderboard Panel -->
   <div class="card bg-secondary-dark p-4 d-none" id="final-panel">
-    <h4 class="mb-3">🏆 Final Leaderboard</h4>
+    <h4 class="mb-3" id="finalTitle">🏆 Final Leaderboard</h4>
     <div id="final-board"></div>
+    <div class="text-center mt-4">
+      <button onclick="window.location='/';" class="btn btn-primary">
+        ← <span id="backBtn">Back to Home</span>
+      </button>
+    </div>
   </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/examiner_quiz.js') }}"></script>
-<script>initExaminer('{{ room.code }}');</script>
+<script>
+// Translate UI elements
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    document.getElementById('dashboardTitle').textContent = (t('examinerQuiz') || 'Examiner Dashboard') + ' — ' + '{{ room.code }}';
+    document.getElementById('monitoringText').textContent = t('antiCheatWarning') || 'Monitoring:';
+    document.getElementById('monitoringDesc').textContent = 'Full-screen mode required • Tab switching detected • Screenshot attempts recorded';
+    document.getElementById('waitingForQuiz').textContent = 'Waiting for quiz to begin...';
+    document.getElementById('resultTitle').textContent = '📊 Question Result — Top 3';
+    document.getElementById('nextBtn').textContent = t('nextQuestion');
+    document.getElementById('contTitleText').textContent = t('contestants');
+    document.getElementById('contDesc').textContent = '🟢 = Active | 🟡 = Answered | 🚫 = Disqualified';
+    document.getElementById('finalTitle').textContent = t('finalBoard');
+    document.getElementById('backBtn').textContent = 'Back to Home';
+  }, 100);
+});
+
+initExaminer('{{ room.code }}');
+</script>
 {% endblock %}

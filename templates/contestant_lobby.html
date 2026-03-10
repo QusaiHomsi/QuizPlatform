@@ -13,11 +13,40 @@
 {% endblock %}
 {% block content %}
 <div class="container py-5 text-center">
-  <h3 class="mb-2">Welcome, <span class="text-success">{{ contestant.name }}</span>!</h3>
-  <p class="text-secondary mb-4">Room: <span class="badge bg-primary">{{ room.code }}</span></p>
+  <h3 class="mb-2" id="welcomeTitle">Welcome, <span class="text-success">{{ contestant.name }}</span>!</h3>
+  <p class="text-secondary mb-4" id="roomInfo">Room: <span class="badge bg-primary">{{ room.code }}</span></p>
+  
+  <!-- Waiting Spinner -->
   <div class="spinner-border text-primary mb-3" role="status"></div>
-  <p class="text-secondary">Waiting for the examiner to start the quiz...</p>
-  <p class="text-warning small mt-4">⚠️ The quiz requires fullscreen. Do not switch tabs or minimize.</p>
+  <p class="text-secondary" id="waitingMsg">Waiting for the examiner to start the quiz...</p>
+  
+  <!-- Anti-Cheat Warning -->
+  <div class="alert alert-danger mt-4 mb-3">
+    <strong id="warningTitle">⚠️ Important:</strong>
+    <ul class="mb-0 mt-2 small text-start">
+      <li id="rule1">🔒 <span id="rule1Text">The quiz requires fullscreen mode</span></li>
+      <li id="rule2">❌ <span id="rule2Text">Do not switch tabs or minimize the window</span></li>
+      <li id="rule3">🚫 <span id="rule3Text">No screenshots, copying, or pasting allowed</span></li>
+      <li id="rule4">📱 <span id="rule4Text">Keep your focus on the quiz only</span></li>
+      <li id="rule5">⚠️ <span id="rule5Text">Violations will result in warnings and disqualification</span></li>
+    </ul>
+  </div>
+
+  <!-- Tips Section -->
+  <div class="card bg-secondary-dark mt-4 p-3">
+    <h6 id="tipsTitle">💡 Tips for Success:</h6>
+    <small class="text-secondary" id="tipsText">
+      • Read each question carefully<br/>
+      • Answer as quickly and accurately as possible<br/>
+      • The faster you answer correctly, the more points you earn<br/>
+      • Good luck! 🚀
+    </small>
+  </div>
+
+  <!-- Ready Indicator -->
+  <div class="alert alert-info mt-4 mb-0">
+    <small id="readyMsg">✅ You're all set! The examiner will start the quiz soon.</small>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}
@@ -74,6 +103,22 @@ document.addEventListener('dragstart', (e) => {
 document.addEventListener('drop', (e) => {
   e.preventDefault();
   return false;
+});
+
+// Translate UI elements
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    document.getElementById('welcomeTitle').textContent = 'Welcome, ' + '<span class="text-success">{{ contestant.name }}</span>' + '!';
+    document.getElementById('waitingMsg').textContent = t('waitingForOthers');
+    document.getElementById('warningTitle').textContent = '⚠️ Important:';
+    document.getElementById('rule1Text').textContent = t('fullscreenWarning') || 'The quiz requires fullscreen mode';
+    document.getElementById('rule2Text').textContent = 'Do not switch tabs or minimize the window';
+    document.getElementById('rule3Text').textContent = t('antiCheatDesc') || 'No screenshots, copying, or pasting allowed';
+    document.getElementById('rule4Text').textContent = 'Keep your focus on the quiz only';
+    document.getElementById('rule5Text').textContent = t('disqualifiedDesc') || 'Violations will result in warnings and disqualification';
+    document.getElementById('tipsTitle').textContent = '💡 Tips for Success:';
+    document.getElementById('readyMsg').textContent = '✅ You\'re all set! The examiner will start the quiz soon.';
+  }, 100);
 });
 </script>
 

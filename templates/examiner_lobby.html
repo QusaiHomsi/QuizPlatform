@@ -1,40 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container py-5 text-center">
-  <h2 class="mb-1">Waiting Lobby</h2>
-  <p class="text-secondary mb-3">Share this code with contestants:</p>
-  <div class="display-1 fw-bold text-primary mb-4 letter-spacing">{{ room.code }}</div>
-  <p class="text-secondary">{{ question_count }} question(s) loaded</p>
-  <div id="contestant-list" class="mb-4">
-    {% for c in contestants %}
-    <span class="badge bg-success fs-6 m-1">{{ c.name }}</span>
-    {% endfor %}
+  <h2 class="mb-1" id="waitingTitle">Waiting Lobby</h2>
+  <p class="text-secondary mb-3" id="shareCodeMsg">Share this code with contestants:</p>
+  
+  <!-- Room Code Display -->
+  <div class="display-1 fw-bold text-primary mb-2 letter-spacing">{{ room.code }}</div>
+  <div class="alert alert-info mb-4">
+    <small id="codeInfo">Copy and share this 6-character code with all participants</small>
   </div>
+
+  <!-- Questions Loaded -->
+  <div class="alert alert-success mb-4">
+    <strong id="questionsLoaded">✅ Questions Ready:</strong>
+    <span id="questionCount">{{ question_count }}</span> question(s) loaded
+  </div>
+
+  <!-- Contestants List -->
+  <h5 id="contListTitle" class="mb-3">Participants:</h5>
+  <div id="contestant-list" class="mb-4 min-height-100">
+    {% for c in contestants %}
+    <span class="badge bg-success fs-6 m-1">👤 {{ c.name }}</span>
+    {% endfor %}
+    {% if not contestants %}
+    <p class="text-secondary" id="waitingForContestants">Waiting for contestants to join...</p>
+    {% endif %}
+  </div>
+
+  <!-- Start Quiz Button with Warning -->
+  <div class="alert alert-warning mb-4" id="startWarning">
+    <small>⚠️ <span id="noContestantsWarning">No contestants have joined yet. Start button will enable when someone joins.</span></small>
+  </div>
+
   <button id="start-btn" class="btn btn-success btn-lg px-5"
-    {% if contestants|length == 0 %}disabled{% endif %}>
-    Start Quiz
+    {% if contestants|length == 0 %}disabled{% endif %}
+    title="Click to begin the quiz for all participants">
+    <span id="startBtn">Start Quiz</span> 🚀
   </button>
+
+  <!-- Tips Section -->
+  <div class="card bg-secondary-dark mt-4 p-3">
+    <h6 id="tipsTitle">💡 Tips:</h6>
+    <small class="text-secondary" id="tipsList">
+      • Share the room code {{ room.code }} with all participants<br/>
+      • All contestants must join before you click "Start Quiz"<br/>
+      • Once started, the quiz cannot be paused or restarted<br/>
+      • Click "Start" to send the first question to all participants
+    </small>
+  </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
 const socket = io();
 socket.emit('examiner_join', {code: '{{ room.code }}'});
+
 socket.on('contestant_list_update', function(data){
   let html = '';
   data.contestants.forEach(c => {
-    html += `<span class="badge ${c.disqualified?'bg-danger':'bg-success'} fs-6 m-1">${c.name}</span>`;
+    const status = c.disqualified ? '<span class="text-danger">🚫 DQ</span>' : '<span class="text-success">✅</span>';
+    html += `<div class="badge ${c.disqualified?'bg-danger':'bg-success'} fs-6 m-1" title="${c.disqualified ? 'Disqualified' : 'Active'}">👤 ${c.name} ${status}</div>`;
   });
-  $('#contestant-list').html(html);
+  $('#contestant-list').html(html || '<p class="text-secondary">Waiting for contestants to join...</p>');
+  
   let active = data.contestants.filter(c=>!c.disqualified).length;
   $('#start-btn').prop('disabled', active === 0);
+  $('#startWarning').toggle(active === 0);
 });
+
 $('#start-btn').on('click', function(){
-  socket.emit('start_quiz', {code: '{{ room.code }}'});
-  window.location = '/examiner/{{ room.code }}/quiz';
+  if(confirm(window.langManager.t('startQuizDesc') || 'Start the quiz now?')) {
+    socket.emit('start_quiz', {code: '{{ room.code }}'});
+    window.location = '/examiner/{{ room.code }}/quiz';
+  }
 });
+
 socket.on('quiz_started', function(){
   window.location = '/examiner/{{ room.code }}/quiz';
+});
+
+// Translate content
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('waitingTitle').textContent = t('examinerLobby');
+  document.getElementById('shareCodeMsg').textContent = t('startQuizDesc') || 'Share this code with contestants:';
+  document.getElementById('codeInfo').textContent = 'Copy and share this 6-character code with all participants';
+  document.getElementById('questionsLoaded').textContent = '✅ Questions Ready:';
+  document.getElementById('contListTitle').textContent = t('contestants');
+  document.getElementById('waitingForContestants').textContent = t('waitingForContestants');
+  document.getElementById('startBtn').textContent = t('startQuiz');
+  document.getElementById('noContestantsWarning').textContent = 'No contestants have joined yet. Start button will enable when someone joins.';
+  document.getElementById('tipsTitle').textContent = '💡 Tips:';
 });
 </script>
 {% endblock %}

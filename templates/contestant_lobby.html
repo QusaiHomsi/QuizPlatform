@@ -1,34 +1,73 @@
 {% extends "base.html" %}
 {% block head %}
 <style>
-  /* Prevent text selection and copying */
-  .container, .container * {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
+  /* ── Prevent all text selection ── */
+  *, *::before, *::after {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
   }
+
+  /* ── Block print ── */
+  @media print {
+    body { display: none !important; }
+  }
+
+  /* ── Capture overlay ── */
+  #capture-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  #capture-overlay.active { display: flex; }
+
+  .bg-secondary-dark { background-color: #1e1e2e !important; }
 </style>
 {% endblock %}
+
 {% block content %}
+
+<!-- ── Black overlay on capture / tab switch ── -->
+<div id="capture-overlay">
+  <div style="font-size:3rem;">🚫</div>
+  <div id="capture-text" style="margin-top:1rem;">Screen capture detected</div>
+  <div style="font-size:1rem; color:#aaa; margin-top:.5rem;" id="capture-recorded">This incident has been recorded</div>
+  <div id="capture-countdown" style="font-size:1rem; color:#ff4444; margin-top:1rem;"></div>
+</div>
+
 <div class="container py-5 text-center">
-  <h3 class="mb-2" id="welcomeTitle">Welcome, <span class="text-success">{{ contestant.name }}</span>!</h3>
-  <p class="text-secondary mb-4" id="roomInfo">Room: <span class="badge bg-primary">{{ room.code }}</span></p>
-  
+  <!-- Welcome Header -->
+  <h3 class="mb-2" id="welcomeTitle">
+    Welcome, <span class="text-success">{{ contestant.name }}</span>!
+  </h3>
+  <p class="text-secondary mb-4" id="roomInfo">
+    Room: <span class="badge bg-primary">{{ room.code }}</span>
+  </p>
+
   <!-- Waiting Spinner -->
   <div class="spinner-border text-primary mb-3" role="status"></div>
   <p class="text-secondary" id="waitingMsg">Waiting for the examiner to start the quiz...</p>
-  
+
   <!-- Anti-Cheat Warning -->
   <div class="alert alert-danger mt-4 mb-3">
     <strong id="warningTitle">⚠️ Important:</strong>
     <ul class="mb-0 mt-2 small text-start">
-      <li id="rule1">🔒 <span id="rule1Text">The quiz requires fullscreen mode</span></li>
-      <li id="rule2">❌ <span id="rule2Text">Do not switch tabs or minimize the window</span></li>
-      <li id="rule3">🚫 <span id="rule3Text">No screenshots, copying, or pasting allowed</span></li>
-      <li id="rule4">📱 <span id="rule4Text">Keep your focus on the quiz only</span></li>
-      <li id="rule5">⚠️ <span id="rule5Text">Violations will result in warnings and disqualification</span></li>
+      <li id="rule1">🔒 The quiz requires fullscreen mode</li>
+      <li id="rule2">❌ Do not switch tabs or minimize the window</li>
+      <li id="rule3">🚫 No screenshots, copying, or pasting allowed</li>
+      <li id="rule4">📱 Keep your focus on the quiz only</li>
+      <li id="rule5">⚠️ Violations will result in warnings and disqualification</li>
     </ul>
   </div>
 
@@ -49,89 +88,211 @@
   </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
-<!-- Security & Anti-Cheat Measures -->
 <script>
-// Disable right-click context menu
-document.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
-  return false;
-});
+(function () {
+  'use strict';
 
-// Disable text selection
-document.addEventListener('selectstart', (e) => {
-  e.preventDefault();
-  return false;
-});
+  let warningCount = 0;
+  let disqualified = false;
+  let overlayTimer = null;
+  const MAX_WARNINGS = 2;
 
-// Disable copy, cut, paste
-document.addEventListener('copy', (e) => {
-  e.preventDefault();
-  return false;
-});
-
-document.addEventListener('cut', (e) => {
-  e.preventDefault();
-  return false;
-});
-
-document.addEventListener('paste', (e) => {
-  e.preventDefault();
-  return false;
-});
-
-// Disable developer tools shortcuts
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'F12' || 
-      ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J' || e.key === 'K' || e.key === 'M')) ||
-      ((e.ctrlKey || e.metaKey) && e.key === 'I') ||
-      ((e.ctrlKey || e.metaKey) && e.key === 'u') ||
-      ((e.ctrlKey || e.metaKey) && e.key === 'p') ||
-      ((e.ctrlKey || e.metaKey) && e.key === 's') ||
-      e.key === 'PrintScreen') {
-    e.preventDefault();
-    return false;
+  // ── DQ: redirect immediately ──────────────────────────────────────────────
+  function terminateContestant(reason) {
+    if (disqualified) return;
+    disqualified = true;
+    hideOverlay();
+    if (window._lobbySocket) {
+      window._lobbySocket.emit('disqualify_self', {
+        code:   '{{ room.code }}',
+        id:     parseInt('{{ contestant.id }}'),
+        reason: reason
+      });
+    }
+    alert('🚫 You have been disqualified: ' + reason);
+    window.location = '/';
   }
-});
 
-// Disable drag and drop
-document.addEventListener('dragstart', (e) => {
-  e.preventDefault();
-  return false;
-});
+  // ── Warning counter ───────────────────────────────────────────────────────
+  function issueWarning(reason) {
+    if (disqualified) return;
+    warningCount++;
+    if (warningCount >= MAX_WARNINGS) {
+      terminateContestant('Maximum warnings exceeded: ' + reason);
+    } else {
+      alert('⚠️ Warning ' + warningCount + '/' + MAX_WARNINGS + ': ' + reason +
+            '\nAnother violation will disqualify you.');
+    }
+  }
 
-document.addEventListener('drop', (e) => {
-  e.preventDefault();
-  return false;
-});
+  // ── Overlay helpers ───────────────────────────────────────────────────────
+  function showOverlay(autoHideMs) {
+    if (disqualified) return;
+    const overlay = document.getElementById('capture-overlay');
+    overlay.classList.add('active');
 
-// Translate UI elements
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(() => {
-    document.getElementById('welcomeTitle').textContent = 'Welcome, ' + '<span class="text-success">{{ contestant.name }}</span>' + '!';
-    document.getElementById('waitingMsg').textContent = t('waitingForOthers');
-    document.getElementById('warningTitle').textContent = '⚠️ Important:';
-    document.getElementById('rule1Text').textContent = t('fullscreenWarning') || 'The quiz requires fullscreen mode';
-    document.getElementById('rule2Text').textContent = 'Do not switch tabs or minimize the window';
-    document.getElementById('rule3Text').textContent = t('antiCheatDesc') || 'No screenshots, copying, or pasting allowed';
-    document.getElementById('rule4Text').textContent = 'Keep your focus on the quiz only';
-    document.getElementById('rule5Text').textContent = t('disqualifiedDesc') || 'Violations will result in warnings and disqualification';
-    document.getElementById('tipsTitle').textContent = '💡 Tips for Success:';
-    document.getElementById('readyMsg').textContent = '✅ You\'re all set! The examiner will start the quiz soon.';
-  }, 100);
-});
+    const countdown = document.getElementById('capture-countdown');
+    if (autoHideMs && countdown) {
+      let remaining = Math.ceil(autoHideMs / 1000);
+      countdown.textContent = 'Resuming in ' + remaining + 's';
+      const tick = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          countdown.textContent = 'Resuming in ' + remaining + 's';
+        } else {
+          clearInterval(tick);
+          countdown.textContent = '';
+        }
+      }, 1000);
+    }
+
+    if (overlayTimer) clearTimeout(overlayTimer);
+    if (autoHideMs) {
+      overlayTimer = setTimeout(hideOverlay, autoHideMs);
+    }
+  }
+
+  function hideOverlay() {
+    const overlay = document.getElementById('capture-overlay');
+    if (overlay) overlay.classList.remove('active');
+    const countdown = document.getElementById('capture-countdown');
+    if (countdown) countdown.textContent = '';
+    if (overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
+  }
+
+  // ── 1. Block keyboard shortcuts ───────────────────────────────────────────
+  const BLOCKED_KEYS       = new Set(['F12', 'PrintScreen', 'F5', 'F6']);
+  const BLOCKED_CTRL       = new Set(['u','s','p','a','c','x','i','j','k','m','g','e']);
+  const BLOCKED_CTRL_SHIFT = new Set(['i','c','j','k','m','e','s']);
+
+  document.addEventListener('keydown', (e) => {
+    if (BLOCKED_KEYS.has(e.key)) {
+      e.preventDefault();
+      if (e.key === 'PrintScreen') {
+        showOverlay(3000);
+        issueWarning('Screenshot attempt (PrintScreen)');
+      }
+      return false;
+    }
+    if ((e.ctrlKey || e.metaKey) && BLOCKED_CTRL.has(e.key.toLowerCase())) {
+      e.preventDefault(); return false;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && BLOCKED_CTRL_SHIFT.has(e.key.toLowerCase())) {
+      e.preventDefault(); return false;
+    }
+    // Windows Snipping Tool: Win+Shift+S
+    if (e.shiftKey && e.metaKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      showOverlay(3000);
+      issueWarning('Screenshot attempt (Snipping Tool)');
+      return false;
+    }
+  }, true);
+
+  // ── 2. Block right-click, copy, cut, paste, drag ─────────────────────────
+  ['contextmenu','selectstart','copy','cut','paste','dragstart','drop'].forEach(evt => {
+    document.addEventListener(evt, e => { e.preventDefault(); return false; }, true);
+  });
+
+  // ── 3. Tab switch / window hide ───────────────────────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !disqualified) {
+      showOverlay(null);
+      issueWarning('Tab switched / window hidden');
+    } else if (!document.hidden) {
+      hideOverlay();
+    }
+  });
+
+  // ── 4. Window blur (alt-tab, screen-share tool grabbing focus) ───────────
+  let blurTimeout = null;
+  window.addEventListener('blur', () => {
+    if (disqualified) return;
+    blurTimeout = setTimeout(() => {
+      if (!document.hasFocus()) {
+        showOverlay(null);
+        issueWarning('Window focus lost');
+      }
+    }, 500);
+  });
+  window.addEventListener('focus', () => {
+    clearTimeout(blurTimeout);
+    if (!disqualified) hideOverlay();
+  });
+
+  // ── 5. Intercept getDisplayMedia (screen share / OBS / Snip & Sketch) ────
+  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+    navigator.mediaDevices.getDisplayMedia = function () {
+      showOverlay(4000);
+      issueWarning('Screen share / recording attempt');
+      return Promise.reject(new DOMException('NotAllowedError', 'Screen capture is not permitted.'));
+    };
+  }
+
+  // ── 6. Fullscreen enforcement ─────────────────────────────────────────────
+  function requestFullscreen() {
+    const el = document.documentElement;
+    try {
+      (el.requestFullscreen || el.webkitRequestFullscreen ||
+       el.mozRequestFullScreen || el.msRequestFullscreen).call(el);
+    } catch (e) {}
+  }
+
+  let fsRequested = false;
+  document.addEventListener('click', () => {
+    if (!fsRequested) { fsRequested = true; requestFullscreen(); }
+  }, { once: true });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && !disqualified) {
+      showOverlay(null);
+      issueWarning('Fullscreen exited');
+      setTimeout(requestFullscreen, 2000);
+    }
+  });
+
+})();
 </script>
 
 <script>
 const socket = io();
-const code = '{{ room.code }}';
-const cId = parseInt('{{ contestant.id }}');
+window._lobbySocket = socket;
+
 socket.emit('contestant_join_room', {
-  code: code,
-  contestant_id: cId
+  code:          '{{ room.code }}',
+  contestant_id: parseInt('{{ contestant.id }}')
 });
-socket.on('quiz_started', function(){
-  window.location = '/contestant/' + code + '/quiz';
+
+socket.on('quiz_started', function () {
+  window.location = '/contestant/{{ room.code }}/quiz';
+});
+
+// ── Translations ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  const _t = (typeof t === 'function') ? t : (k => null);
+
+  // Welcome title: keep the green name span intact
+  const welcomeEl = document.getElementById('welcomeTitle');
+  if (welcomeEl) {
+    welcomeEl.innerHTML = (_t('welcome') || 'Welcome,') +
+      ' <span class="text-success">{{ contestant.name }}</span>!';
+  }
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+
+  set('waitingMsg',  _t('waitingForOthers') || 'Waiting for the examiner to start the quiz...');
+  set('warningTitle','⚠️ ' + (_t('important') || 'Important:'));
+  set('rule1',       '🔒 ' + (_t('fullscreenWarning')  || 'The quiz requires fullscreen mode'));
+  set('rule2',       '❌ ' + (_t('noTabSwitch')        || 'Do not switch tabs or minimize the window'));
+  set('rule3',       '🚫 ' + (_t('antiCheatDesc')      || 'No screenshots, copying, or pasting allowed'));
+  set('rule4',       '📱 ' + (_t('focusOnQuiz')        || 'Keep your focus on the quiz only'));
+  set('rule5',       '⚠️ ' + (_t('disqualifiedDesc')   || 'Violations will result in warnings and disqualification'));
+  set('tipsTitle',   '💡 ' + (_t('tipsTitle')          || 'Tips for Success:'));
+  set('readyMsg',    '✅ ' + (_t('readyMsg')           || "You're all set! The examiner will start the quiz soon."));
+  set('capture-text',     _t('screenCaptureDetected')  || 'Screen capture detected');
+  set('capture-recorded', _t('screenCaptureRecorded')  || 'This incident has been recorded');
 });
 </script>
 {% endblock %}

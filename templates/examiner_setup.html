@@ -13,7 +13,7 @@
       </small>
     </div>
     <button id="save-btn" class="btn btn-success btn-lg" title="Save all questions and proceed to lobby">
-      <span id="saveBtn">Save & Go to Lobby →</span>
+      <span id="saveBtn">Save &amp; Go to Lobby →</span>
     </button>
   </div>
 
@@ -24,7 +24,7 @@
       <li id="step1">Add your questions below</li>
       <li id="step2">Choose question type: Open Text or Multiple Choice</li>
       <li id="step3">Set correct answer and point values</li>
-      <li id="step4">Click "Save & Go to Lobby" when ready</li>
+      <li id="step4">Click "Save &amp; Go to Lobby" when ready</li>
     </ol>
   </div>
 
@@ -37,66 +37,68 @@
   </button>
 </div>
 
-<!-- Question Template -->
+<!-- Question Template: NO ids inside — use data-* or classes only -->
 <template id="q-template">
-  <div class="question-block card bg-secondary-dark p-4 mb-3" data-idx="__IDX__">
+  <div class="question-block card bg-secondary-dark p-4 mb-3">
     <div class="d-flex justify-content-between mb-3">
-      <h5 class="mb-0"><span id="q-label">Question</span> <span class="q-num"></span></h5>
+      <h5 class="mb-0">
+        <span class="q-label-text">Question</span> <span class="q-num"></span>
+      </h5>
       <button class="btn btn-sm btn-danger remove-q" title="Remove this question" onclick="return false;">
-        ✕ <span id="remove-label">Remove</span>
+        ✕ <span class="remove-label-text">Remove</span>
       </button>
     </div>
 
     <!-- Question Text -->
     <div class="mb-3">
-      <label class="form-label" id="q-text-label">Question Text</label>
+      <label class="form-label q-text-label">Question Text</label>
       <textarea 
         class="form-control q-text" 
         rows="2" 
         placeholder="Enter your question here..."
         title="The question that will be shown to contestants"
         aria-label="Question text"></textarea>
-      <small class="text-secondary d-block mt-1" id="q-text-hint">Be clear and concise</small>
+      <small class="text-secondary d-block mt-1 q-text-hint">Be clear and concise</small>
     </div>
 
     <!-- Type, Points -->
     <div class="row mb-3">
       <div class="col-md-3">
-        <label class="form-label" id="q-type-label">Type</label>
+        <label class="form-label q-type-label">Type</label>
         <select class="form-select q-type" title="Choose question format" aria-label="Question type">
-          <option value="text" id="opt-text">Open Text</option>
-          <option value="mcq" id="opt-mcq">Multiple Choice</option>
+          <option value="text" class="opt-text-label">Open Text</option>
+          <option value="mcq" class="opt-mcq-label">Multiple Choice</option>
         </select>
-        <small class="text-secondary d-block mt-1" id="q-type-hint">Select answer format</small>
+        <small class="text-secondary d-block mt-1 q-type-hint">Select answer format</small>
       </div>
       <div class="col-md-3">
-        <label class="form-label" id="q-pts1-label">1st Place Pts</label>
+        <label class="form-label q-pts1-label">1st Place Pts</label>
         <input 
           type="number" 
           class="form-control q-pts1" 
-          value="300" 
+          value="3" 
           min="0"
           title="Points awarded to 1st place answer"
           aria-label="First place points"/>
         <small class="text-secondary d-block mt-1">🥇</small>
       </div>
       <div class="col-md-3">
-        <label class="form-label" id="q-pts2-label">2nd Place Pts</label>
+        <label class="form-label q-pts2-label">2nd Place Pts</label>
         <input 
           type="number" 
           class="form-control q-pts2" 
-          value="200" 
+          value="2" 
           min="0"
           title="Points awarded to 2nd place answer"
           aria-label="Second place points"/>
         <small class="text-secondary d-block mt-1">🥈</small>
       </div>
       <div class="col-md-3">
-        <label class="form-label" id="q-pts3-label">3rd Place Pts</label>
+        <label class="form-label q-pts3-label">3rd Place Pts</label>
         <input 
           type="number" 
           class="form-control q-pts3" 
-          value="100" 
+          value="1" 
           min="0"
           title="Points awarded to 3rd place answer"
           aria-label="Third place points"/>
@@ -106,38 +108,38 @@
 
     <!-- MCQ Options -->
     <div class="mcq-section d-none mb-3">
-      <label class="form-label" id="q-options-label">Options (one per line)</label>
+      <label class="form-label q-options-label">Options (one per line)</label>
       <textarea 
         class="form-control q-options" 
         rows="4" 
         placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"
         title="Enter each option on a new line. There must be at least 2 options."
         aria-label="Multiple choice options"></textarea>
-      <small class="text-secondary d-block mt-1" id="q-options-hint">⚠️ At least 2 options required. One must match the Correct Answer field.</small>
+      <small class="text-secondary d-block mt-1 q-options-hint">⚠️ At least 2 options required. One must match the Correct Answer field.</small>
     </div>
 
     <!-- Correct Answer -->
     <div class="mb-3">
-      <label class="form-label" id="q-answer-label">Correct Answer</label>
+      <label class="form-label q-answer-label">Correct Answer</label>
       <input 
         type="text" 
         class="form-control q-answer" 
         placeholder="For MCQ, must exactly match one option (case-sensitive)"
         title="The correct answer. For MCQ, this must exactly match one of the options provided above."
         aria-label="Correct answer"/>
-      <small class="text-secondary d-block mt-1" id="q-answer-hint">🔴 <strong>Important:</strong> For Multiple Choice, the answer must exactly match one option (case-sensitive)</small>
+      <small class="text-secondary d-block mt-1 q-answer-hint">🔴 <strong>Important:</strong> For Multiple Choice, the answer must exactly match one option (case-sensitive)</small>
     </div>
 
     <!-- Note / Explanation -->
     <div class="mb-0">
-      <label class="form-label" id="q-note-label">Note / Explanation (optional)</label>
+      <label class="form-label q-note-label">Note / Explanation (optional)</label>
       <input 
         type="text" 
         class="form-control q-note" 
         placeholder="e.g., 'The capital of France is...' or 'See page 45 of your textbook'"
         title="This will be shown to all contestants after the correct answer is revealed"
         aria-label="Note or explanation"/>
-      <small class="text-secondary d-block mt-1" id="q-note-hint">Shown to all contestants after answer reveal</small>
+      <small class="text-secondary d-block mt-1 q-note-hint">Shown to all contestants after answer reveal</small>
     </div>
   </div>
 </template>
@@ -149,20 +151,43 @@
 let qCount = 0;
 const container = $('#questions-container');
 
+// Translation strings applied to each newly created question block
+function applyQuestionTranslations(el) {
+  el.find('.q-label-text').text(typeof t === 'function' ? t('question') : 'Question');
+  el.find('.remove-label-text').text(typeof t === 'function' ? t('remove') : 'Remove');
+  el.find('.q-text-label').text(typeof t === 'function' ? t('questionText') : 'Question Text');
+  el.find('.q-type-label').text(typeof t === 'function' ? t('questionType') : 'Type');
+  el.find('.q-pts1-label').text(typeof t === 'function' ? t('pts1st') : '1st Place Pts');
+  el.find('.q-pts2-label').text(typeof t === 'function' ? t('pts2nd') : '2nd Place Pts');
+  el.find('.q-pts3-label').text(typeof t === 'function' ? t('pts3rd') : '3rd Place Pts');
+  el.find('.q-options-label').text(typeof t === 'function' ? t('options') : 'Options (one per line)');
+  el.find('.q-answer-label').text(typeof t === 'function' ? t('correctAnswer') : 'Correct Answer');
+  el.find('.q-note-label').text(typeof t === 'function' ? t('note') : 'Note / Explanation (optional)');
+  el.find('.opt-text-label').text(typeof t === 'function' ? t('openText') : 'Open Text');
+  el.find('.opt-mcq-label').text(typeof t === 'function' ? t('multipleChoice') : 'Multiple Choice');
+}
+
 function addQuestion() {
   qCount++;
-  let tpl = $('#q-template').html().replace(/__IDX__/g, qCount);
-  let el  = $(tpl);
+  // Clone template content properly
+  const tmpl = document.getElementById('q-template');
+  const clone = tmpl.content.cloneNode(true);
+  const el = $(clone.querySelector('.question-block'));
+
   el.find('.q-num').text(qCount);
+  applyQuestionTranslations(el);
   container.append(el);
-  
-  el.find('.remove-q').on('click', function(e){
+
+  // Re-select the appended element for event binding
+  const appended = container.find('.question-block').last();
+
+  appended.find('.remove-q').on('click', function(e){
     e.preventDefault();
     $(this).closest('.question-block').remove();
     renumber();
   });
-  
-  el.find('.q-type').on('change', function(){
+
+  appended.find('.q-type').on('change', function(){
     let show = $(this).val() === 'mcq';
     $(this).closest('.question-block').find('.mcq-section').toggleClass('d-none', !show);
   });
@@ -191,7 +216,6 @@ $('#save-btn').on('click', function(){
     if (type === 'mcq') {
       options = $(this).find('.q-options').val().split('\n').map(s=>s.trim()).filter(Boolean);
       if (options.length < 2) { alert('❌ MCQ need at least 2 options'); valid=false; return false; }
-      // Check if answer matches one of the options
       if (!options.includes(answer)) {
         alert('❌ Correct Answer must exactly match one of the options (case-sensitive)');
         valid = false;
@@ -215,31 +239,17 @@ $('#save-btn').on('click', function(){
   });
 });
 
-// Translate labels on page load
+// Translate static page labels, then add first question
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('setupTitle').textContent = t('setupQuestions');
-  document.getElementById('roomCodePrefix').textContent = t('roomCode') + ':';
-  document.getElementById('shareCodeHint').textContent = 'Share this code with contestants';
-  document.getElementById('saveBtn').textContent = t('saveGo');
-  document.getElementById('setupHelpTitle').textContent = '📋 Setup Instructions:';
-  document.getElementById('addQuestionBtn').textContent = t('addQuestion').replace('+ ', '');
-  
-  // Update template labels
-  document.getElementById('q-label').textContent = t('question');
-  document.getElementById('remove-label').textContent = t('remove');
-  document.getElementById('q-text-label').textContent = t('questionText');
-  document.getElementById('q-type-label').textContent = t('questionType');
-  document.getElementById('q-pts1-label').textContent = t('pts1st');
-  document.getElementById('q-pts2-label').textContent = t('pts2nd');
-  document.getElementById('q-pts3-label').textContent = t('pts3rd');
-  document.getElementById('q-options-label').textContent = t('options');
-  document.getElementById('q-answer-label').textContent = t('correctAnswer');
-  document.getElementById('q-note-label').textContent = t('note');
-  document.getElementById('opt-text').textContent = t('openText');
-  document.getElementById('opt-mcq').textContent = t('multipleChoice');
+  if (typeof t === 'function') {
+    document.getElementById('setupTitle').textContent    = t('setupQuestions');
+    document.getElementById('roomCodePrefix').textContent = t('roomCode') + ':';
+    document.getElementById('shareCodeHint').textContent  = t('shareCodeHint') || 'Share this code with contestants';
+    document.getElementById('saveBtn').textContent        = t('saveGo');
+    document.getElementById('addQuestionBtn').textContent = t('addQuestion').replace('+ ', '');
+  }
+  // Add the first blank question AFTER DOMContentLoaded so translations are ready
+  addQuestion();
 });
-
-// Add first question on load
-addQuestion();
 </script>
 {% endblock %}

@@ -4,8 +4,16 @@
   <h2 class="mb-1" id="waitingTitle">Waiting Lobby</h2>
   <p class="text-secondary mb-3" id="shareCodeMsg">Share this code with contestants:</p>
   
-  <!-- Room Code Display -->
-  <div class="display-1 fw-bold text-primary mb-2 letter-spacing">{{ room.code }}</div>
+  <!-- Room Code Display + Copy Button -->
+  <div class="d-flex align-items-center justify-content-center gap-3 mb-2">
+    <div class="display-1 fw-bold text-primary letter-spacing">{{ room.code }}</div>
+    <button id="copy-code-btn"
+      class="btn btn-outline-primary btn-lg"
+      title="Copy room code to clipboard"
+      onclick="copyRoomCode()">
+      📋 <span id="copyBtnLabel">Copy Code</span>
+    </button>
+  </div>
   <div class="alert alert-info mb-4">
     <small id="codeInfo">Copy and share this 6-character code with all participants</small>
   </div>
@@ -80,17 +88,52 @@ socket.on('quiz_started', function(){
   window.location = '/examiner/{{ room.code }}/quiz';
 });
 
+function copyRoomCode() {
+  const code = '{{ room.code }}';
+  navigator.clipboard.writeText(code).then(function() {
+    const btn = document.getElementById('copy-code-btn');
+    const label = document.getElementById('copyBtnLabel');
+    const originalText = label.textContent;
+    const originalClass = btn.className;
+
+    label.textContent = 'Copied!';
+    btn.className = btn.className.replace('btn-outline-primary', 'btn-success');
+
+    setTimeout(function() {
+      label.textContent = originalText;
+      btn.className = originalClass;
+    }, 2000);
+  }).catch(function() {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    document.getElementById('copyBtnLabel').textContent = 'Copied!';
+    setTimeout(function() {
+      document.getElementById('copyBtnLabel').textContent = typeof t === 'function' ? t('copyCode') || 'Copy Code' : 'Copy Code';
+    }, 2000);
+  });
+}
+
 // Translate content
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('waitingTitle').textContent = t('examinerLobby');
-  document.getElementById('shareCodeMsg').textContent = t('startQuizDesc') || 'Share this code with contestants:';
-  document.getElementById('codeInfo').textContent = 'Copy and share this 6-character code with all participants';
-  document.getElementById('questionsLoaded').textContent = '✅ Questions Ready:';
-  document.getElementById('contListTitle').textContent = t('contestants');
-  document.getElementById('waitingForContestants').textContent = t('waitingForContestants');
-  document.getElementById('startBtn').textContent = t('startQuiz');
-  document.getElementById('noContestantsWarning').textContent = 'No contestants have joined yet. Start button will enable when someone joins.';
-  document.getElementById('tipsTitle').textContent = '💡 Tips:';
+  if (typeof t === 'function') {
+    document.getElementById('waitingTitle').textContent       = t('examinerLobby');
+    document.getElementById('shareCodeMsg').textContent       = t('startQuizDesc') || 'Share this code with contestants:';
+    document.getElementById('codeInfo').textContent           = 'Copy and share this 6-character code with all participants';
+    document.getElementById('questionsLoaded').textContent    = '✅ Questions Ready:';
+    document.getElementById('contListTitle').textContent      = t('contestants');
+    document.getElementById('waitingForContestants').textContent = t('waitingForContestants');
+    document.getElementById('startBtn').textContent           = t('startQuiz');
+    document.getElementById('copyBtnLabel').textContent       = t('copyCode') || 'Copy Code';
+    document.getElementById('noContestantsWarning').textContent = 'No contestants have joined yet. Start button will enable when someone joins.';
+    document.getElementById('tipsTitle').textContent          = '💡 Tips:';
+  }
 });
 </script>
 {% endblock %}

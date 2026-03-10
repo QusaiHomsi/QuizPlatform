@@ -7,6 +7,7 @@ const translations = {
   ar: {
     // ── Main Menu & Navigation ──
     title: 'ساحة الاختبار',
+    copyCode : 'نسخ الرمز',
     tagline: 'اختبارات تنافسية فورية مع حماية ضد الغش',
     createRoom: 'إنشاء غرفة',
     joinRoom: 'الانضمام إلى غرفة',
@@ -109,6 +110,7 @@ const translations = {
   en: {
     // ── Main Menu & Navigation ──
     title: 'QuizArena',
+    copyCode : 'Copy Code ',
     tagline: 'Real-time competitive quizzes with anti-cheat protection',
     createRoom: 'Create a Room',
     joinRoom: 'Join a Room',

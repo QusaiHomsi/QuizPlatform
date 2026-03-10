@@ -42,47 +42,73 @@
     position: relative;
     display: inline-block;
   }
-  /* Invisible overlay on top of canvas blocks long-press/right-click image save on mobile */
+  /* Shield: blocks right-click, long-press, drag, Google Lens on mobile */
   #canvas-shield {
     position: absolute;
     inset: 0;
     z-index: 10;
     background: transparent;
+    pointer-events: all;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
   }
 
   .bg-secondary-dark { background-color: #1e1e2e !important; }
   canvas { display: block; border-radius: 8px; }
   #warn-banner { position: sticky; top: 0; z-index: 9999; }
+
+  /* ── DQ screen ── */
+  #dq-screen { display: none; }
+  #dq-screen.active { display: block; }
+  #quiz-wrapper.hidden { display: none !important; }
 </style>
 {% endblock %}
 
 {% block content %}
+
 {% if disqualified %}
+<!-- ── Pre-disqualified (server side) ── -->
 <div class="container py-5 text-center">
   <div class="display-1 mb-3">🚫</div>
   <h2 class="text-danger" id="dq-title">You have been disqualified</h2>
   <p class="text-secondary" id="dq-reason">{{ reason }}</p>
-  <button onclick="window.location='/';" class="btn btn-primary mt-3">← <span id="backHome">Back to Home</span></button>
+  <button onclick="window.location='/';" class="btn btn-primary mt-3">
+    ← <span id="backHome">Back to Home</span>
+  </button>
 </div>
+
 {% else %}
 
-<!-- Black overlay shown during screen capture detection -->
+<!-- ── Black overlay: shown on screen capture / tab switch ── -->
 <div id="capture-overlay">
-  <div>🚫</div>
-  <div id="capture-text">Screen capture detected</div>
-  <div class="fs-6 text-secondary mt-2" id="capture-recorded">This incident has been recorded</div>
+  <div style="font-size:3rem;">🚫</div>
+  <div id="capture-text" style="margin-top:1rem;">Screen capture detected</div>
+  <div class="fs-6 mt-2" style="color:#aaa;" id="capture-recorded">This incident has been recorded</div>
+  <div id="capture-countdown" style="font-size:1rem; color:#ff4444; margin-top:1rem;"></div>
+</div>
+
+<!-- ── Client-side DQ screen (shown by JS on 2nd violation) ── -->
+<div id="dq-screen" class="container py-5 text-center">
+  <div class="display-1 mb-3">🚫</div>
+  <h2 class="text-danger" id="dq-client-title">You have been disqualified</h2>
+  <p class="text-secondary" id="dq-client-reason">Anti-cheat violation detected.</p>
+  <button onclick="window.location='/';" class="btn btn-primary mt-3">
+    ← <span id="dq-back-home">Back to Home</span>
+  </button>
 </div>
 
 <div id="quiz-wrapper" class="container-fluid py-3 px-4">
   <div id="warn-banner" class="alert alert-warning d-none text-center fw-bold"></div>
 
-  <!-- Header with Quiz Info -->
+  <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0" id="header-title">QuizArena</h5>
     <div>
       <span id="q-counter" class="badge bg-secondary me-2"></span>
       <span class="badge bg-success" title="Your name" id="contestant-badge">{{ contestant.name }}</span>
-      <button id="end-btn" class="btn btn-sm btn-danger ms-2" title="Exit the quiz (this will end your test)" onclick="if(confirm(window.langManager.t('endExamDesc') || 'Are you sure you want to end your exam?')) window.location='/';">
+      <button id="end-btn" class="btn btn-sm btn-danger ms-2"
+        title="Exit the quiz"
+        onclick="if(confirm(window.langManager ? window.langManager.t('endExamDesc') : 'Are you sure?')) window.location='/';"> 
         <span id="endBtn">End Exam</span>
       </button>
     </div>
@@ -92,19 +118,24 @@
   <div class="alert alert-danger mb-3" role="alert">
     <strong id="antiCheatLabel">🔒 Anti-Cheat Active:</strong>
     <ul class="mb-0 mt-2 small">
-      <li id="rule1">❌ <span id="noCopy">Screenshots not allowed</span></li>
-      <li id="rule2">❌ <span id="noCopy2">Copy/Paste disabled</span></li>
-      <li id="rule3">❌ <span id="noSwitch">Tab switching will trigger warning</span></li>
-      <li id="rule4">❌ <span id="noLeaveFS">Leaving fullscreen will trigger warning</span></li>
-      <li id="rule5">🚫 <span id="twoWarnings">2 warnings = automatic disqualification</span></li>
+      <li id="rule1">❌ Screenshots &amp; screen recording not allowed</li>
+      <li id="rule2">❌ Copy/Paste disabled</li>
+      <li id="rule3">❌ Tab switching will trigger a warning</li>
+      <li id="rule4">❌ Leaving fullscreen will trigger a warning</li>
+      <li id="rule5">🚫 2 warnings = automatic disqualification</li>
     </ul>
   </div>
 
-  <!-- Canvas wrapper with shield overlay -->
+  <!-- Canvas question display -->
   <div class="card bg-secondary-dark p-3 mb-3 text-center">
     <div id="canvas-wrapper" class="mx-auto">
       <canvas id="q-canvas" style="max-width:100%; display:block;"></canvas>
-      <div id="canvas-shield"></div>
+      <!-- Shield blocks right-click, long-press image save, Google Lens -->
+      <div id="canvas-shield"
+           oncontextmenu="return false;"
+           ondragstart="return false;"
+           onselectstart="return false;">
+      </div>
     </div>
   </div>
 
@@ -119,14 +150,14 @@
              autocomplete="off" spellcheck="false"
              autocorrect="off" autocapitalize="off"/>
     </div>
-    <button id="submit-btn" class="btn btn-success btn-lg w-100" title="Click to submit your answer">
+    <button id="submit-btn" class="btn btn-success btn-lg w-100" title="Submit your answer">
       <span id="submitBtnText">Submit Answer</span>
     </button>
   </div>
 
   <!-- Waiting Panel -->
   <div id="waiting-panel" class="text-center text-secondary mt-3 d-none">
-    <div class="spinner-border spinner-border-sm me-2"></div> 
+    <div class="spinner-border spinner-border-sm me-2"></div>
     <span id="waitingText">Waiting for others...</span>
   </div>
 
@@ -149,31 +180,136 @@
       </button>
     </div>
   </div>
-</div>
+</div><!-- /#quiz-wrapper -->
+
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
 {% if not disqualified %}
 <script>
-(function() {
+(function () {
   'use strict';
 
-  // ── 1. Block all keyboard shortcuts ───────────────────────────────────────
-  const BLOCKED_KEYS = new Set(['F12','PrintScreen','F5','F6']);
-  const BLOCKED_CTRL = new Set(['u','s','p','a','c','x','i','j','k','m','g']);
-  const BLOCKED_CTRL_SHIFT = new Set(['i','c','j','k','m','e']);
+  // ── Config ────────────────────────────────────────────────────────────────
+  const ROOM_CODE     = '{{ room.code }}';
+  const CONTESTANT_ID = '{{ contestant.id }}';
+  const MAX_WARNINGS  = 2;
+
+  let warningCount   = 0;
+  let disqualified   = false;
+  let overlayVisible = false;
+  let overlayTimer   = null;
+
+  // ── DQ: terminate the contestant ─────────────────────────────────────────
+  function terminateContestant(reason) {
+    if (disqualified) return;
+    disqualified = true;
+
+    // Hide quiz, show DQ screen immediately
+    document.getElementById('quiz-wrapper').classList.add('hidden');
+    hideOverlay();
+
+    const dqScreen = document.getElementById('dq-screen');
+    dqScreen.classList.add('active');
+
+    const reasonEl = document.getElementById('dq-client-reason');
+    if (reasonEl) reasonEl.textContent = reason || 'Anti-cheat violation detected.';
+
+    // Notify server
+    if (window._quizSocket) {
+      window._quizSocket.emit('disqualify_self', {
+        code:   ROOM_CODE,
+        id:     CONTESTANT_ID,
+        reason: reason
+      });
+    }
+
+    // Force redirect after 4 s
+    setTimeout(() => { window.location = '/'; }, 4000);
+  }
+
+  // ── Warning: show overlay then resume or DQ ───────────────────────────────
+  function issueWarning(reason) {
+    if (disqualified) return;
+    warningCount++;
+
+    const banner = document.getElementById('warn-banner');
+    if (banner) {
+      banner.textContent = `⚠️ Warning ${warningCount}/${MAX_WARNINGS}: ${reason}`;
+      banner.classList.remove('d-none');
+      setTimeout(() => banner.classList.add('d-none'), 4000);
+    }
+
+    if (warningCount >= MAX_WARNINGS) {
+      terminateContestant('Maximum warnings exceeded: ' + reason);
+    }
+  }
+
+  // ── Overlay helpers ───────────────────────────────────────────────────────
+  function showOverlay(reason, autoHideMs) {
+    if (disqualified) return;
+    overlayVisible = true;
+    const overlay = document.getElementById('capture-overlay');
+    overlay.classList.add('active');
+
+    const countdown = document.getElementById('capture-countdown');
+    if (autoHideMs && countdown) {
+      let remaining = Math.ceil(autoHideMs / 1000);
+      countdown.textContent = `Resuming in ${remaining}s`;
+      const tick = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          countdown.textContent = `Resuming in ${remaining}s`;
+        } else {
+          clearInterval(tick);
+          countdown.textContent = '';
+        }
+      }, 1000);
+    }
+
+    if (overlayTimer) clearTimeout(overlayTimer);
+    if (autoHideMs) {
+      overlayTimer = setTimeout(() => hideOverlay(), autoHideMs);
+    }
+  }
+
+  function hideOverlay() {
+    overlayVisible = false;
+    const overlay = document.getElementById('capture-overlay');
+    if (overlay) overlay.classList.remove('active');
+    const countdown = document.getElementById('capture-countdown');
+    if (countdown) countdown.textContent = '';
+    if (overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
+  }
+
+  // ── 1. Block keyboard shortcuts ───────────────────────────────────────────
+  const BLOCKED_KEYS      = new Set(['F12', 'PrintScreen', 'F5', 'F6']);
+  const BLOCKED_CTRL      = new Set(['u','s','p','a','c','x','i','j','k','m','g','e']);
+  const BLOCKED_CTRL_SHIFT= new Set(['i','c','j','k','m','e','s']);
 
   document.addEventListener('keydown', (e) => {
-    if (BLOCKED_KEYS.has(e.key)) { e.preventDefault(); return false; }
+    if (BLOCKED_KEYS.has(e.key)) {
+      e.preventDefault();
+      if (e.key === 'PrintScreen') {
+        showOverlay('Screenshot key detected', 3000);
+        issueWarning('Screenshot attempt (PrintScreen)');
+      }
+      return false;
+    }
     if ((e.ctrlKey || e.metaKey) && BLOCKED_CTRL.has(e.key.toLowerCase())) {
       e.preventDefault(); return false;
     }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && BLOCKED_CTRL_SHIFT.has(e.key.toLowerCase())) {
       e.preventDefault(); return false;
     }
-    // Block Windows Snipping Tool shortcut: Win+Shift+S (can't fully block but disrupt)
-    if (e.shiftKey && e.metaKey && e.key === 'S') { e.preventDefault(); return false; }
+    // Windows Snipping Tool: Win+Shift+S
+    if (e.shiftKey && e.metaKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      showOverlay('Snipping tool detected', 3000);
+      issueWarning('Screenshot attempt (Snipping Tool)');
+      return false;
+    }
   }, true);
 
   // ── 2. Block right-click, copy, cut, paste, drag ─────────────────────────
@@ -181,59 +317,146 @@
     document.addEventListener(evt, e => { e.preventDefault(); return false; }, true);
   });
 
-  // ── 3. Detect screen recording / screen sharing (falls back to Canvas) ────
-  navigator.mediaDevices.enumerateDevices().then(devices => {
-    const hasScreen = devices.some(d => d.kind === 'videoinput');
-    // Note: getDisplayMedia requires user interaction, so we rely on capture-overlay detection
-  }).catch(err => {
-    // Ignore errors
+  // ── 3. Block canvas shield touch events (Google Lens / long-press) ────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const shield = document.getElementById('canvas-shield');
+    if (shield) {
+      ['touchstart','touchend','touchmove','pointerdown','pointerup'].forEach(evt => {
+        shield.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      });
+      shield.addEventListener('contextmenu', e => e.preventDefault(), true);
+    }
   });
 
-  // ── 4. Detect screen captures via unusual frame rate changes ──────────────
-  const observer = new PerformanceObserver(() => {
-    // Subtle detection of frame rate anomalies that may indicate screen capture
+  // ── 4. Visibility change: tab switch / minimize ───────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !disqualified) {
+      showOverlay('Tab switch detected — return to the quiz', null);
+      issueWarning('Tab switched / window hidden');
+    } else if (!document.hidden) {
+      hideOverlay();
+    }
   });
-  try { observer.observe({ entryTypes: ['measure'] }); } catch (e) {}
 
-  // ── 5. Drag/drop file handler (tries to prevent file drag) ──────────────
-  document.addEventListener('dragenter', e => {
-    if (window._quizActive) { e.dataTransfer.dropEffect = 'none'; e.preventDefault(); }
+  // ── 5. Window blur: alt-tab, screen share tools opening ──────────────────
+  let blurTimeout = null;
+  window.addEventListener('blur', () => {
+    if (disqualified) return;
+    // Delay slightly to avoid false positives on focus-in-page clicks
+    blurTimeout = setTimeout(() => {
+      if (!document.hasFocus()) {
+        showOverlay('Window lost focus — return to the quiz', null);
+        issueWarning('Window focus lost');
+      }
+    }, 500);
   });
+  window.addEventListener('focus', () => {
+    clearTimeout(blurTimeout);
+    if (!disqualified) hideOverlay();
+  });
+
+  // ── 6. Screen Capture API detection (Chrome 94+) ──────────────────────────
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        const screenCapture = devices.some(d =>
+          d.kind === 'videoinput' && d.label.toLowerCase().includes('screen')
+        );
+        if (screenCapture && !disqualified) {
+          showOverlay('Screen recording device detected', null);
+          issueWarning('Screen capture device active');
+        }
+      }).catch(() => {});
+    });
+  }
+
+  // ── 7. getDisplayMedia intercept: block screen share / OBS / Snip ─────────
+  if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+    const _orig = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getDisplayMedia = function (...args) {
+      showOverlay('Screen sharing blocked', 4000);
+      issueWarning('Screen share / recording attempt');
+      return Promise.reject(new DOMException('NotAllowedError', 'Screen capture is not permitted.'));
+    };
+  }
+
+  // ── 8. Fullscreen enforcement ─────────────────────────────────────────────
+  function requestFullscreen() {
+    const el = document.documentElement;
+    try {
+      (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen)
+        .call(el);
+    } catch (e) {}
+  }
+
+  // Ask for fullscreen on first user interaction
+  let fsRequested = false;
+  document.addEventListener('click', () => {
+    if (!fsRequested) { fsRequested = true; requestFullscreen(); }
+  }, { once: true });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && !disqualified) {
+      showOverlay('Fullscreen exited — return to fullscreen', null);
+      issueWarning('Fullscreen exited');
+      // Re-request after 2 s
+      setTimeout(requestFullscreen, 2000);
+    }
+  });
+
+  // ── 9. Watermark canvas with contestant name (deters photographing screen) ─
+  // This runs after contestant_quiz.js draws the question
+  window._addWatermark = function(canvas, name) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.font = 'bold 28px monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(-Math.PI / 6);
+    ctx.textAlign = 'center';
+    // Tile the name diagonally
+    for (let y = -canvas.height; y < canvas.height; y += 80) {
+      ctx.fillText(name + ' · ' + ROOM_CODE, 0, y);
+    }
+    ctx.restore();
+  };
+
+  // Expose so contestant_quiz.js can call terminateContestant / issueWarning
+  window._antiCheat = { issueWarning, terminateContestant, showOverlay, hideOverlay };
+
 })();
 </script>
+
 <script src="{{ url_for('static', filename='js/contestant_quiz.js') }}"></script>
+
 <script>
-// ── Call init with page data ──────────────────────────────────────────────
-// Must be called AFTER contestant_quiz.js is loaded
+// ── Init quiz with page data ──────────────────────────────────────────────
 initContestant('{{ room.code }}', '{{ contestant.id }}', '{{ contestant.name }}');
 
-// Translate UI text
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(() => {
-    document.getElementById('header-title').textContent = t('title');
-    document.getElementById('endBtn').textContent = t('endExam');
-    document.getElementById('antiCheatLabel').textContent = t('antiCheatWarning');
-    document.getElementById('noCopy').textContent = 'Screenshots not allowed';
-    document.getElementById('noCopy2').textContent = 'Copy/Paste disabled';
-    document.getElementById('noSwitch').textContent = 'Tab switching will trigger warning';
-    document.getElementById('noLeaveFS').textContent = 'Leaving fullscreen will trigger warning';
-    document.getElementById('twoWarnings').textContent = '2 warnings = automatic disqualification';
-    document.getElementById('textAnswerLabel').textContent = t('yourName') || 'Your Answer:';
-    document.getElementById('submitBtnText').textContent = t('submitAnswer');
-    document.getElementById('waitingText').textContent = t('waitingForOthers');
-    document.getElementById('topThreeTitle').textContent = t('topThisRound');
-    document.getElementById('finalTitle').textContent = t('finalBoard');
-    document.getElementById('finishText').textContent = 'Back to Home';
-    if (document.getElementById('dq-title')) {
-      document.getElementById('dq-title').textContent = t('disqualified');
-    }
-    if (document.getElementById('capture-text')) {
-      document.getElementById('capture-text').textContent = t('screenCaptureDetected');
-    }
-    if (document.getElementById('capture-recorded')) {
-      document.getElementById('capture-recorded').textContent = t('screenCaptureRecorded');
-    }
-  }, 100);
+// ── Translations ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  const _t = (typeof t === 'function') ? t : (k => k);
+
+  document.getElementById('header-title').textContent      = _t('title');
+  document.getElementById('endBtn').textContent            = _t('endExam');
+  document.getElementById('antiCheatLabel').textContent    = _t('antiCheatWarning') || '🔒 Anti-Cheat Active:';
+  document.getElementById('rule1').textContent             = '❌ ' + (_t('noScreenshots') || 'Screenshots & screen recording not allowed');
+  document.getElementById('rule2').textContent             = '❌ ' + (_t('noCopyPaste')   || 'Copy/Paste disabled');
+  document.getElementById('rule3').textContent             = '❌ ' + (_t('noTabSwitch')   || 'Tab switching will trigger a warning');
+  document.getElementById('rule4').textContent             = '❌ ' + (_t('noLeaveFS')     || 'Leaving fullscreen will trigger a warning');
+  document.getElementById('rule5').textContent             = '🚫 ' + (_t('twoWarningsDQ') || '2 warnings = automatic disqualification');
+  document.getElementById('textAnswerLabel').textContent   = _t('yourAnswer') || 'Your Answer:';
+  document.getElementById('submitBtnText').textContent     = _t('submitAnswer') || 'Submit Answer';
+  document.getElementById('waitingText').textContent       = _t('waitingForOthers') || 'Waiting for others...';
+  document.getElementById('topThreeTitle').textContent     = _t('topThisRound') || 'Top 3 this round:';
+  document.getElementById('finalTitle').textContent        = _t('finalBoard') || '🏆 Final Results';
+  document.getElementById('finishText').textContent        = _t('backHome') || 'Back to Home';
+  document.getElementById('capture-text').textContent      = _t('screenCaptureDetected') || 'Screen capture detected';
+  document.getElementById('capture-recorded').textContent  = _t('screenCaptureRecorded') || 'This incident has been recorded';
+  document.getElementById('dq-client-title').textContent   = _t('disqualified') || 'You have been disqualified';
+  document.getElementById('dq-back-home').textContent      = _t('backHome') || 'Back to Home';
 });
 </script>
 {% endif %}
